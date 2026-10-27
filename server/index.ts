@@ -16,9 +16,8 @@ const app = express();
 
 app.use(
   helmet({
-    contentSecurityPolicy: env.production
-      ? undefined
-      : false,
+    contentSecurityPolicy: false,
+    hsts: false,
   }),
 );
 app.use(cookieParser());
