@@ -10,8 +10,9 @@ export function Screen1Overview() {
   if (!report) return null;
 
   const { week, summary, members } = report;
+  const isCorrupted = week.leadName && (week.leadName.includes('Nguyá') || week.leadName.includes('Ä') || week.leadName.includes('Ã'));
   const leadDisplay =
-    week.leadName && week.leadName !== 'Lê Sĩ Thành' && week.leadName.toUpperCase() !== 'LÊ SĨ THÀNH' && week.leadName !== 'Team Lead'
+    week.leadName && !isCorrupted && week.leadName !== 'Lê Sĩ Thành' && week.leadName.toUpperCase() !== 'LÊ SĨ THÀNH' && week.leadName !== 'Team Lead'
       ? week.leadName
       : 'Nguyễn Đăng Huân';
   const kpiPercent = summary.kpiPercent;
