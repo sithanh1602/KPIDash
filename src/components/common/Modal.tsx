@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -11,6 +12,12 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = 'lg' }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -25,7 +32,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const maxWidthClass = {
     sm: 'max-w-sm',
@@ -37,7 +44,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
     '6xl': 'max-w-6xl',
   }[maxWidth];
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         className={`w-full ${maxWidthClass} max-h-[90vh] flex flex-col bg-[#141720] border border-[#232836] rounded-2xl shadow-2xl overflow-hidden`}
@@ -57,6 +64,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = '
         </div>
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
