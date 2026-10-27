@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@config "../tailwind.config.ts";
+
+@layer base {
+  * {
+    border-color: #232836;
+  }
+
+  body {
+    font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
+    color: #e8edf6;
+    background-color: #0b0d12;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* Light Theme Mode Overrides */
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+html.light * {
+  border-color: #e2e8f0;
+}
+html.light .bg-\[\#0b0d12\] { background-color: #f8fafc !important; }
+html.light .bg-\[\#0e1117\] { background-color: #ffffff !important; }
+html.light .bg-\[\#10131a\] { background-color: #f1f5f9 !important; }
+html.light .bg-\[\#12151d\] { background-color: #ffffff !important; }
+html.light .bg-\[\#141824\] { background-color: #ffffff !important; }
+html.light .bg-\[\#151922\] { background-color: #f8fafc !important; }
+html.light .bg-\[\#161922\] { background-color: #f1f5f9 !important; }
+html.light .bg-\[\#171b26\] { background-color: #f8fafc !important; }
+html.light .bg-\[\#161a24\] { background-color: #f1f5f9 !important; }
+html.light .border-\[\#232836\] { border-color: #e2e8f0 !important; }
+html.light .border-\[\#262c3d\] { border-color: #cbd5e1 !important; }
+html.light .border-\[\#282f42\] { border-color: #cbd5e1 !important; }
+html.light .divide-\[\#1e2330\] > :not([hidden]) ~ :not([hidden]) { border-color: #e2e8f0 !important; }
+html.light .text-white { color: #0f172a !important; }
+html.light .text-slate-100 { color: #0f172a !important; }
+html.light .text-slate-200 { color: #1e293b !important; }
+html.light .text-slate-300 { color: #334155 !important; }
+html.light .text-slate-400 { color: #64748b !important; }
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #10131a;
+}
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #232836;
+  border-radius: 4px;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2f3546;
+}
+
+/* Print layout for PDF */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-page-break {
+    page-break-after: always;
+  }
+}
