@@ -8,6 +8,10 @@ export function Screen6Attitude() {
   if (!report) return null;
 
   const { week, members, summary } = report;
+  const leadDisplay =
+    week.leadName && week.leadName !== 'Lê Sĩ Thành' && week.leadName.toUpperCase() !== 'LÊ SĨ THÀNH' && week.leadName !== 'Team Lead'
+      ? week.leadName
+      : 'Nguyễn Đăng Huân';
 
   // Sắp xếp theo điểm attitude giảm dần
   const sortedMembers = [...members].sort((a, b) => (b.attitude?.score || 0) - (a.attitude?.score || 0));
@@ -18,11 +22,11 @@ export function Screen6Attitude() {
       <div className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-widest text-slate-400 font-mono mb-1">
-            {week.orgName} · {week.teamName} {week.discipline} · TEAM LEAD {week.leadName || 'LÊ SĨ THÀNH'}
+            {week.orgName} · {week.teamName} {week.discipline} · TEAM LEAD {leadDisplay.toUpperCase()}
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Đánh giá Attitude thành viên</h1>
           <p className="text-xs text-slate-400 mt-1 max-w-4xl leading-relaxed">
-            Thang điểm 85–100 · Xuất sắc ≥ 95 · Tốt 90–94 · Khá 85–89. Căn cứ: đúng giờ, nghỉ có phép và báo trước, Complete đúng deadline, chủ động hỗ trợ nhóm (số liệu Tuần {week.weekNumber}: {week.startDate.slice(8, 10)}–{week.endDate.slice(8, 10)}/{week.startDate.slice(5, 7)}). {week.leadName ? `Team Lead: ${week.leadName}.` : ''}
+            Thang điểm 85–100 · Xuất sắc ≥ 95 · Tốt 90–94 · Khá 85–89. Căn cứ: đúng giờ, nghỉ có phép và báo trước, Complete đúng deadline, chủ động hỗ trợ nhóm (số liệu Tuần {week.weekNumber}: {week.startDate.slice(8, 10)}–{week.endDate.slice(8, 10)}/{week.startDate.slice(5, 7)}). Team Lead: {leadDisplay}.
           </p>
         </div>
 

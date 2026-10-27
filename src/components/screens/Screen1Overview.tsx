@@ -10,6 +10,10 @@ export function Screen1Overview() {
   if (!report) return null;
 
   const { week, summary, members } = report;
+  const leadDisplay =
+    week.leadName && week.leadName !== 'Lê Sĩ Thành' && week.leadName.toUpperCase() !== 'LÊ SĨ THÀNH' && week.leadName !== 'Team Lead'
+      ? week.leadName
+      : 'Nguyễn Đăng Huân';
   const kpiPercent = summary.kpiPercent;
   const teamAvg = summary.teamAvg;
 
@@ -40,7 +44,7 @@ export function Screen1Overview() {
           Báo cáo KPI & chất lượng gán nhãn {week.discipline}
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-2">
-          Tuần {week.weekNumber} ({weekRangeLabel(week.startDate, week.endDate)}) • số liệu đến {asOfLabel(week)} • Team lead {week.leadName || 'Nguyễn Đăng Huân'}
+          Tuần {week.weekNumber} ({weekRangeLabel(week.startDate, week.endDate)}) • số liệu đến {asOfLabel(week)} • Team lead {leadDisplay}
         </p>
 
         {/* 6 Top Metric Cards */}
