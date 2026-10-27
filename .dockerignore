@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.idea
+.vscode
+.agents
+.aws
+.codex

@@ -1,0 +1,76 @@
+services:
+  app:
+    container_name: kpi_dashboard_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3001}:3001"
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-anno_kpi_v2}
+      MYSQL_USER: ${MYSQL_USER:-thanhdev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-KpiSecretPass123!}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-85e3de5872d12068abe4406c3eab470efd65cde16bb6120a9f25daf121b5c274}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-e3a7f2222504e83efce8f4203c37c8a87c242147433ea68e20c46627409e08df}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-lead@anno.local}
+      ADMIN_NAME: ${ADMIN_NAME:-Lê Sĩ Thành}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-AdminKpi2026!Secret}
+      REDIS_ENABLED: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_KEY_PREFIX: "annokpi:"
+      REDIS_MAX_USERS: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kpi_net
+
+  mysql:
+    image: mysql:8.0
+    container_name: kpi_dashboard_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootKpiPass2026!}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-anno_kpi_v2}
+      MYSQL_USER: ${MYSQL_USER:-thanhdev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-KpiSecretPass123!}
+    volumes:
+      - kpi_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - kpi_net
+
+  redis:
+    image: redis:alpine
+    container_name: kpi_dashboard_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - kpi_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - kpi_net
+
+volumes:
+  kpi_mysql_data:
+  kpi_redis_data:
+
+networks:
+  kpi_net:
+    driver: bridge
