@@ -67,9 +67,27 @@ services:
     networks:
       - kpi_net
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: kpi_dashboard_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - kpi_caddy_data:/data
+      - kpi_caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - kpi_net
+
 volumes:
   kpi_mysql_data:
   kpi_redis_data:
+  kpi_caddy_data:
+  kpi_caddy_config:
 
 networks:
   kpi_net:
