@@ -423,7 +423,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `active`, `created_at`) VALUES (1,'Lê Sĩ Thành','lead@anno.local','$2b$12$WhYSmAtoVkGaH2xo1U86uOKgNueeKmqxAAHWdSmA.q5izI.Si04uO','leader',1,'2026-10-27 11:58:45'),(2,'Nguyễn Đăng Huân','26ai.huannd@vinuni.edu.vn','$2b$10$cIzXJ2E0tYVkPe.KrVi5lew4hSntJZnlABlN8VpYBxTtemNdf2Xgi','leader',1,'2026-10-27 14:02:37'),(3,'Lê Sĩ Thành','26ai.thanhls@vinuni.edu.vn','$2b$10$f7spi.FLa0jbGINBXRWCUuPTuczLgg36zZFowlxRmjPstgLxPVWWm','qc',1,'2026-10-27 14:06:37');
+INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `active`, `created_at`) VALUES (1,'Nguyễn Đăng Huân','lead@anno.local','$2b$12$WhYSmAtoVkGaH2xo1U86uOKgNueeKmqxAAHWdSmA.q5izI.Si04uO','leader',1,'2026-10-27 11:58:45'),(2,'Nguyễn Đăng Huân','26ai.huannd@vinuni.edu.vn','$2b$10$cIzXJ2E0tYVkPe.KrVi5lew4hSntJZnlABlN8VpYBxTtemNdf2Xgi','leader',1,'2026-10-27 14:02:37'),(3,'Lê Sĩ Thành','26ai.thanhls@vinuni.edu.vn','$2b$10$f7spi.FLa0jbGINBXRWCUuPTuczLgg36zZFowlxRmjPstgLxPVWWm','qc',1,'2026-10-27 14:06:37');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -499,7 +499,7 @@ CREATE TABLE `weeks` (
 
 LOCK TABLES `weeks` WRITE;
 /*!40000 ALTER TABLE `weeks` DISABLE KEYS */;
-INSERT INTO `weeks` (`id`, `week_number`, `start_date`, `end_date`, `data_as_of`, `org_name`, `team_name`, `discipline`, `floor_name`, `lead_name`, `mentor_name`, `target`, `normal_threshold`, `excellent_threshold`, `jobs_total`, `jobs_done`, `tool_qa_done`, `data_notes`, `summary_override`, `updated_by`, `created_at`, `updated_at`) VALUES (5,1,'2026-10-21','2026-10-24','2026-10-24','ADAS','Adas T012','3D LiDAR','','Lê Sĩ Thành','',1200,1000,1200,0,0,0,'','',1,'2026-10-27 14:05:01','2026-10-27 18:05:57');
+INSERT INTO `weeks` (`id`, `week_number`, `start_date`, `end_date`, `data_as_of`, `org_name`, `team_name`, `discipline`, `floor_name`, `lead_name`, `mentor_name`, `target`, `normal_threshold`, `excellent_threshold`, `jobs_total`, `jobs_done`, `tool_qa_done`, `data_notes`, `summary_override`, `updated_by`, `created_at`, `updated_at`) VALUES (5,1,'2026-10-21','2026-10-24','2026-10-24','ADAS','Adas T012','3D LiDAR','','Nguyễn Đăng Huân','',1200,1000,1200,0,0,0,'','',1,'2026-10-27 14:05:01','2026-10-27 18:18:58');
 /*!40000 ALTER TABLE `weeks` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -512,4 +512,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-28  1:06:30
+-- Dump completed on 2026-10-28  1:19:06

@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS weeks (
   team_name           VARCHAR(100) NOT NULL DEFAULT 'Adas T012',
   discipline          VARCHAR(100) NOT NULL DEFAULT '3D LiDAR',
   floor_name          VARCHAR(100) NOT NULL DEFAULT '',
-  lead_name           VARCHAR(150) NOT NULL DEFAULT 'Lê Sĩ Thành',
+  lead_name           VARCHAR(150) NOT NULL DEFAULT 'Nguyễn Đăng Huân',
   mentor_name         VARCHAR(150) NOT NULL DEFAULT '',
   target              INT UNSIGNED NOT NULL DEFAULT 1200,
   normal_threshold    INT UNSIGNED NOT NULL DEFAULT 1000,

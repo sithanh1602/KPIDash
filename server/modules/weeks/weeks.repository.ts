@@ -95,7 +95,7 @@ export async function createWeek(input: CreateWeekInput, userId: number): Promis
         base?.team_name ?? 'Adas T012',
         base?.discipline ?? '3D LiDAR',
         base?.floor_name ?? '',
-        base?.lead_name ?? 'Lê Sĩ Thành',
+        base?.lead_name ?? 'Nguyễn Đăng Huân',
         base?.mentor_name ?? '',
         base?.target ?? 1200,
         base?.normal_threshold ?? 1000,

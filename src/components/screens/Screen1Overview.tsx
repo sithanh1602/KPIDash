@@ -40,7 +40,7 @@ export function Screen1Overview() {
           Báo cáo KPI & chất lượng gán nhãn {week.discipline}
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-2">
-          Tuần {week.weekNumber} ({weekRangeLabel(week.startDate, week.endDate)}) • số liệu đến {asOfLabel(week)} • Team lead {week.leadName || 'Lê Sĩ Thành'}
+          Tuần {week.weekNumber} ({weekRangeLabel(week.startDate, week.endDate)}) • số liệu đến {asOfLabel(week)} • Team lead {week.leadName || 'Nguyễn Đăng Huân'}
         </p>
 
         {/* 6 Top Metric Cards */}
