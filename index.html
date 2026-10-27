@@ -3,7 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ADAS Rubik — Báo cáo KPI & Chất lượng 3D LiDAR</title>
+    <title>T012-VinFast-Adas</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('app_theme');
+          if (t === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          } else {
+            document.documentElement.classList.remove('light');
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="bg-[#0b0d12] text-slate-100 antialiased selection:bg-emerald-500/20 selection:text-emerald-300 min-h-screen">
     <div id="root"></div>

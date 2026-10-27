@@ -35,7 +35,7 @@ export function Navbar({ onOpenExport }: { onOpenExport: () => void }) {
             <RubikLogo size="md" showText={true} />
             <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-[#232836]">
               <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                {report?.week.teamName || 'PerFect T012'}
+                {report?.week.teamName || 'Adas T012'}
               </span>
               <span className="text-xs text-slate-400 hidden lg:inline">
                 {report?.week.discipline || '3D LiDAR'}

@@ -17,30 +17,134 @@
 
 /* Light Theme Mode Overrides */
 html.light body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
 }
 html.light * {
   border-color: #e2e8f0;
 }
+
+/* Header & Navbar Light mode */
+html.light header,
+html.light header.bg-\[\#0e1117\]\/95,
+html.light .bg-\[\#0e1117\]\/95,
+html.light .bg-\[\#0e1117\] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+html.light header button {
+  border-color: #e2e8f0 !important;
+}
+html.light header button:not(.bg-emerald-500) {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+}
+html.light header button:not(.bg-emerald-500):hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* TabNav Light mode */
+html.light nav,
+html.light nav.bg-\[\#10131a\]\/80,
+html.light .bg-\[\#10131a\]\/80,
+html.light .bg-\[\#10131a\] {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+html.light nav button.bg-slate-200 {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+html.light nav button.bg-slate-200 span,
+html.light nav button.bg-slate-200 svg {
+  color: #ffffff !important;
+}
+html.light nav button.bg-slate-200 span.bg-slate-900\/15 {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+html.light nav button:not(.bg-slate-200) {
+  color: #64748b !important;
+}
+html.light nav button:not(.bg-slate-200):hover {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+}
+html.light nav button:not(.bg-slate-200) span.bg-slate-800 {
+  background-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+/* Week Selector & Dropdowns */
+html.light .bg-\[\#151922\] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+html.light select {
+  color: #0f172a !important;
+}
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Cards & Modals */
 html.light .bg-\[\#0b0d12\] { background-color: #f8fafc !important; }
-html.light .bg-\[\#0e1117\] { background-color: #ffffff !important; }
-html.light .bg-\[\#10131a\] { background-color: #f1f5f9 !important; }
 html.light .bg-\[\#12151d\] { background-color: #ffffff !important; }
+html.light .bg-\[\#141720\] { background-color: #ffffff !important; }
 html.light .bg-\[\#141824\] { background-color: #ffffff !important; }
-html.light .bg-\[\#151922\] { background-color: #f8fafc !important; }
 html.light .bg-\[\#161922\] { background-color: #f1f5f9 !important; }
 html.light .bg-\[\#171b26\] { background-color: #f8fafc !important; }
 html.light .bg-\[\#161a24\] { background-color: #f1f5f9 !important; }
-html.light .border-\[\#232836\] { border-color: #e2e8f0 !important; }
-html.light .border-\[\#262c3d\] { border-color: #cbd5e1 !important; }
-html.light .border-\[\#282f42\] { border-color: #cbd5e1 !important; }
-html.light .divide-\[\#1e2330\] > :not([hidden]) ~ :not([hidden]) { border-color: #e2e8f0 !important; }
+html.light .bg-\[\#1c202b\] { background-color: #e2e8f0 !important; }
+
+/* Borders & Dividers */
+html.light .border-\[\#232836\],
+html.light .border-\[\#262c3d\],
+html.light .border-\[\#282f42\],
+html.light .border-\[\#1c202b\] {
+  border-color: #e2e8f0 !important;
+}
+html.light .divide-\[\#1e2330\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* Text Colors */
 html.light .text-white { color: #0f172a !important; }
 html.light .text-slate-100 { color: #0f172a !important; }
 html.light .text-slate-200 { color: #1e293b !important; }
 html.light .text-slate-300 { color: #334155 !important; }
 html.light .text-slate-400 { color: #64748b !important; }
+html.light .text-slate-500 { color: #64748b !important; }
+
+/* Table styling in Light Mode */
+html.light table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+}
+html.light table tr:hover td {
+  background-color: #f1f5f9 !important;
+}
+
+/* Inputs & Forms in Light Mode */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Footer */
+html.light footer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {

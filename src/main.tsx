@@ -17,7 +17,7 @@ import { WebExcelGrid } from './components/sheets/WebExcelGrid';
 import { MembersManager } from './components/members/MembersManager';
 import { ExportModal } from './components/exports/ExportModal';
 import type { ReportSectionKey } from '@shared/report-sections';
-import { AlertCircle, Lock, LogIn } from 'lucide-react';
+import { AlertCircle, LogIn } from 'lucide-react';
 import { RubikLogo } from './components/common/RubikLogo';
 import './styles.css';
 
@@ -55,7 +55,7 @@ function LoginPage() {
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">ADAS — KPI Dashboard</h1>
           <p className="text-xs text-slate-400">
-            Hệ thống quản lý hiệu suất & chất lượng 3D LiDAR (PerFect T012)
+            Hệ thống quản lý hiệu suất & chất lượng 3D LiDAR (Adas T012)
           </p>
         </div>
 
@@ -105,10 +105,6 @@ function LoginPage() {
             )}
           </button>
         </form>
-
-        <div className="pt-2 text-center text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
-          <Lock size={12} /> Phiên đăng nhập được bảo mật bằng JWT và HttpOnly Cookie.
-        </div>
       </div>
     </div>
   );
@@ -175,7 +171,7 @@ function DashboardApp() {
       {/* Footer */}
       <footer className="border-t border-[#1c202b] bg-[#0e1117] py-6 px-4 text-center text-xs text-slate-500 no-print">
         <div>
-          ADAS KPI — {report?.week.orgName || 'ADAS'} · {report?.week.teamName || 'PerFect T012'} ({report?.week.discipline || '3D LiDAR'})
+          ADAS KPI — {report?.week.orgName || 'ADAS'} · {report?.week.teamName || 'Adas T012'} ({report?.week.discipline || '3D LiDAR'})
         </div>
         <div className="text-[11px] text-slate-600 mt-1">
           Hệ thống theo dõi hiệu suất, nâng cao chất lượng & phát triển đội ngũ.

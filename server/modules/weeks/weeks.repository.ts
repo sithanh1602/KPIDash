@@ -92,7 +92,7 @@ export async function createWeek(input: CreateWeekInput, userId: number): Promis
         endDate,
         endDate,
         base?.org_name ?? 'ADAS',
-        base?.team_name ?? 'PerFect T012',
+        base?.team_name ?? 'Adas T012',
         base?.discipline ?? '3D LiDAR',
         base?.floor_name ?? '',
         base?.lead_name ?? 'Lê Sĩ Thành',

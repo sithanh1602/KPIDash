@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS weeks (
   end_date            DATE NOT NULL,
   data_as_of          DATE NOT NULL,
   org_name            VARCHAR(100) NOT NULL DEFAULT 'ADAS',
-  team_name           VARCHAR(100) NOT NULL DEFAULT 'PerFect T012',
+  team_name           VARCHAR(100) NOT NULL DEFAULT 'Adas T012',
   discipline          VARCHAR(100) NOT NULL DEFAULT '3D LiDAR',
   floor_name          VARCHAR(100) NOT NULL DEFAULT '',
   lead_name           VARCHAR(150) NOT NULL DEFAULT 'Lê Sĩ Thành',
