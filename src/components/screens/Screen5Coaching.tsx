@@ -1,32 +1,43 @@
 import React from 'react';
 import { useWeek } from '../../context/WeekContext';
-import { splitLines } from '@shared/text';
+import { QA_TYPES } from '@shared/constants';
+import { filterMemberCoaching, getMemberDynamicRiskAndInsight } from '@shared/qa';
 import { StatusBadge } from '../common/Badge';
+import { QaTypeFilterBar } from '../common/QaTypeFilterBar';
 
 export function Screen5Coaching() {
-  const { report } = useWeek();
+  const { report, selectedQaTypes } = useWeek();
   if (!report) return null;
 
-  const { week, members, issues } = report;
+  const { week, members, issues, tracks } = report;
+  const isFiltered = selectedQaTypes.length < QA_TYPES.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 05 Lỗi hay gặp & đề xuất training */}
       <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">05</span>
-          <h2 className="text-lg font-bold text-white tracking-tight">Lỗi hay gặp & đề xuất training</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">05</span>
+            <h2 className="text-lg font-bold text-white tracking-tight">Lỗi hay gặp & đề xuất training</h2>
+          </div>
+          {isFiltered && (
+            <span className="text-xs text-amber-400 font-mono">
+              (Đồng bộ theo {selectedQaTypes.length}/6 loại lỗi đang chọn)
+            </span>
+          )}
         </div>
-        <p className="text-xs text-slate-400 mb-6">
-          Từ tool QA 7 job + case khó trong Daily. Training là đề xuất của Lead.
+        <p className="text-xs text-slate-400 mb-4">
+          Từ tool QA 7 job + case khó trong Daily. Lỗi hay gặp, tag trọng tâm và training tự động đồng bộ theo loại lỗi đang tích chọn.
         </p>
+
+        <QaTypeFilterBar className="mb-6" label="Lọc lỗi phân tích & training:" />
 
         {/* 7 Members Coaching Cards + 1 Ghi chú số liệu Card */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {members.map((m) => {
-            const c = m.coaching;
-            const errors = splitLines(c?.commonErrors || '');
-            const training = splitLines(c?.training || '');
+            const coaching = filterMemberCoaching(m.coaching, selectedQaTypes);
+            const { riskHigh } = getMemberDynamicRiskAndInsight(m, selectedQaTypes, tracks);
 
             const circleColor =
               m.kpiPercent >= 110
@@ -51,51 +62,62 @@ export function Screen5Coaching() {
                     <div>
                       <div className="font-bold text-white text-sm">{m.name}</div>
                       <div className="text-[10px] text-slate-400">
-                        {m.grade === 'excellent' ? 'Xuất sắc' : m.grade === 'normal' ? 'Bình thường' : 'Dưới KPI'} · {m.qa?.riskHigh || 0} track rủi ro · QC {m.qa?.qcName || '–'}
+                        {m.grade === 'excellent' ? 'Xuất sắc' : m.grade === 'normal' ? 'Bình thường' : 'Dưới KPI'} · {riskHigh} track rủi ro · QC {m.qa?.qcName || '–'}
                       </div>
                     </div>
                   </div>
 
                   {/* Focus Tags */}
-                  {c?.focusTags && (
+                  {coaching.focusTags && (
                     <div className="mt-2.5">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                        {c.focusTags}
+                        {coaching.focusTags}
                       </span>
                     </div>
                   )}
 
                   {/* Style */}
-                  {c?.style && (
+                  {m.coaching?.style && (
                     <div className="mt-3">
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PHONG CÁCH</div>
-                      <div className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">{c.style}</div>
+                      <div className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">{m.coaching.style}</div>
                     </div>
                   )}
 
                   {/* Common Errors */}
-                  {errors.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LỖI HAY GẶP</div>
+                  <div className="mt-3">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>LỖI HAY GẶP</span>
+                      {isFiltered && <span className="text-[9px] text-amber-400 font-normal lowercase">(đã tính lại %)</span>}
+                    </div>
+                    {coaching.commonErrors.length > 0 ? (
                       <ul className="text-[11px] text-slate-300 mt-0.5 space-y-1 list-disc list-inside leading-relaxed">
-                        {errors.map((err, i) => (
+                        {coaching.commonErrors.map((err, i) => (
                           <li key={i}>{err}</li>
                         ))}
                       </ul>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-[11px] text-slate-500 italic mt-0.5">
+                        Không có cảnh báo thuộc các loại lỗi đang chọn.
+                      </div>
+                    )}
+                  </div>
 
                   {/* Training */}
-                  {training.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">TRAINING</div>
+                  <div className="mt-3">
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">TRAINING</div>
+                    {coaching.training.length > 0 ? (
                       <ul className="text-[11px] text-emerald-200/90 mt-0.5 space-y-1 list-disc list-inside leading-relaxed">
-                        {training.map((tr, i) => (
+                        {coaching.training.map((tr, i) => (
                           <li key={i}>{tr}</li>
                         ))}
                       </ul>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-[11px] text-emerald-400/80 italic mt-0.5">
+                        Duy trì kỹ năng hiện tại, không có lỗi cần training thêm.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );

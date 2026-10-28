@@ -1,19 +1,26 @@
 import React from 'react';
 import { useWeek } from '../../context/WeekContext';
 import { fmtDecimal, fmtInt } from '@shared/format';
+import { QA_TYPES } from '@shared/constants';
+import { getMemberDynamicQa, getMemberDynamicRiskAndInsight } from '@shared/qa';
 import { UserAvatar } from '../common/Avatar';
 import { StatusBadge } from '../common/Badge';
 import { splitLines } from '@shared/text';
 
 export function Screen3Ranking() {
-  const { report } = useWeek();
+  const { report, selectedQaTypes } = useWeek();
   if (!report) return null;
 
-  const { week, ranking, summary } = report;
+  const { week, ranking, summary, tracks } = report;
+  const isFiltered = selectedQaTypes.length < QA_TYPES.length;
   const top1 = ranking[0];
   const top2 = ranking[1];
   const top3 = ranking[2];
   const belowKpi = ranking.filter((m) => m.grade === 'below');
+
+  const getDynamicRisk = (m: (typeof ranking)[0]) => {
+    return getMemberDynamicRiskAndInsight(m, selectedQaTypes, tracks).riskHigh;
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -64,7 +71,7 @@ export function Screen3Ranking() {
             <div className="flex items-center justify-center gap-2 mt-3">
               <StatusBadge grade={top2.grade} />
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                {top2.qa?.riskHigh || 0} track Cao
+                {getDynamicRisk(top2)} track Cao
               </span>
             </div>
             <div className="mt-3 text-[11px] text-slate-400 bg-[#161a24] p-2 rounded-xl border border-[#262c3d]">
@@ -92,7 +99,7 @@ export function Screen3Ranking() {
             <div className="flex items-center justify-center gap-2 mt-3">
               <StatusBadge grade={top1.grade} />
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                {top1.qa?.riskHigh || 0} track Cao
+                {getDynamicRisk(top1)} track Cao
               </span>
             </div>
             <div className="mt-3 text-[11px] text-emerald-300/80 bg-emerald-950/20 p-2 rounded-xl border border-emerald-900/40">
@@ -119,7 +126,7 @@ export function Screen3Ranking() {
             <div className="flex items-center justify-center gap-2 mt-3">
               <StatusBadge grade={top3.grade} />
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                {top3.qa?.riskHigh || 0} track Cao
+                {getDynamicRisk(top3)} track Cao
               </span>
             </div>
             <div className="mt-3 text-[11px] text-slate-400 bg-[#161a24] p-2 rounded-xl border border-[#262c3d]">
@@ -189,8 +196,12 @@ export function Screen3Ranking() {
                       {m.kpiPercent}%
                     </td>
                     <td className="py-3 px-3 text-right font-bold text-amber-400 whitespace-nowrap">
-                      {m.qa ? m.qa.riskHigh : '–'}
-                      {m.qa && <span className="text-[10px] text-slate-500 font-normal ml-1">({fmtDecimal(m.qa.warningPercent)}%)</span>}
+                      {m.qa ? getDynamicRisk(m) : '–'}
+                      {m.qa && (
+                        <span className="text-[10px] text-slate-500 font-normal ml-1">
+                          ({fmtDecimal(getMemberDynamicQa(m.qa, selectedQaTypes).percent)}%)
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-center whitespace-nowrap">
                       <StatusBadge grade={m.grade} />

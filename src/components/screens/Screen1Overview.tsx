@@ -1,15 +1,21 @@
 import React from 'react';
 import { useWeek } from '../../context/WeekContext';
 import { fmtInt, weekRangeLabel } from '@shared/format';
+import { QA_TYPES } from '@shared/constants';
+import { filterTrack } from '@shared/qa';
 import { UserAvatar } from '../common/Avatar';
 import { StatusBadge } from '../common/Badge';
 import { asOfLabel } from '@shared/kpi';
 
 export function Screen1Overview() {
-  const { report } = useWeek();
+  const { report, selectedQaTypes } = useWeek();
   if (!report) return null;
 
   const { week, summary, members } = report;
+  const isQaFiltered = selectedQaTypes.length < QA_TYPES.length;
+  const dynamicRiskHighTotal = isQaFiltered
+    ? report.tracks.filter((t) => filterTrack(t, selectedQaTypes).isVisible).length
+    : summary.riskHigh;
   const isCorrupted = week.leadName && (week.leadName.includes('Nguyá') || week.leadName.includes('Ä') || week.leadName.includes('Ã'));
   const leadDisplay =
     week.leadName && !isCorrupted && week.leadName !== 'Lê Sĩ Thành' && week.leadName.toUpperCase() !== 'LÊ SĨ THÀNH' && week.leadName !== 'Team Lead'
@@ -82,8 +88,12 @@ export function Screen1Overview() {
 
           <div className="bg-[#171b26] p-3.5 rounded-xl border border-[#262c3d]">
             <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Track rủi ro cao</div>
-            <div className="text-2xl font-extrabold text-amber-400 mt-1">{summary.riskHigh}</div>
-            <div className="text-[11px] text-slate-400 mt-1">tool QA · chờ QC</div>
+            <div className={`text-2xl font-extrabold mt-1 ${isQaFiltered ? 'text-amber-300' : 'text-amber-400'}`}>
+              {dynamicRiskHighTotal}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1">
+              {isQaFiltered ? `đã lọc (${selectedQaTypes.length}/6 loại)` : 'tool QA · chờ QC'}
+            </div>
           </div>
 
           <div className="bg-[#171b26] p-3.5 rounded-xl border border-[#262c3d]">

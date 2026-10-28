@@ -3,8 +3,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useWeek } from '../../context/WeekContext';
 import { fmtDecimal, fmtInt } from '@shared/format';
 import { QA_TYPES } from '@shared/constants';
-import { CheckSquare, Filter, Sparkles, Square, Upload } from 'lucide-react';
+import { filterTrack, getMemberDynamicQa } from '@shared/qa';
+import { Sparkles } from 'lucide-react';
 import { ToolQaImportModal } from '../sheets/ToolQaImportModal';
+import { QaTypeFilterBar } from '../common/QaTypeFilterBar';
 
 export function Screen4QaQuality() {
   const { user } = useAuth();
@@ -70,59 +72,7 @@ export function Screen4QaQuality() {
           Tool datamuro_qa trên export 7 job. Cảnh báo là nơi QC cần nhìn, chưa phải lỗi. Tích chọn các loại lỗi bên dưới để tính vào tổng cảnh báo và tỷ lệ %.
         </p>
 
-        {/* Thanh công cụ Checkbox chọn loại cảnh báo tính vào KPI */}
-        <div className="bg-[#161a24] border border-[#232836] rounded-xl p-3 mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mr-1 flex items-center gap-1.5">
-              <Filter size={13} className="text-emerald-400" />
-              Chọn loại lỗi tính vào KPI:
-            </span>
-            {QA_TYPES.map((t) => {
-              const isChecked = selectedQaTypes.includes(t.key);
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => toggleQaType(t.key)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all select-none ${
-                    isChecked
-                      ? 'bg-slate-800/90 border-slate-600 text-white shadow-sm'
-                      : 'bg-transparent border-[#232836] text-slate-500 hover:text-slate-300'
-                  }`}
-                  title={`${isChecked ? 'Đang tính' : 'Đang bỏ qua'} lỗi ${t.short} (${t.label})`}
-                >
-                  <span
-                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
-                      isChecked
-                        ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-black'
-                        : 'border-slate-600 bg-slate-900/50'
-                    }`}
-                  >
-                    {isChecked ? '✓' : ''}
-                  </span>
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
-                  <span>{t.short} ({t.label})</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            {isFiltered && (
-              <span className="text-amber-400 font-medium text-[11px] bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
-                Đang tính {selectedQaTypes.length}/6 loại
-              </span>
-            )}
-            {isFiltered && (
-              <button
-                type="button"
-                onClick={selectAllQaTypes}
-                className="text-emerald-400 hover:text-emerald-300 text-[11px] font-semibold underline ml-1"
-              >
-                Chọn tất cả (6/6)
-              </button>
-            )}
-          </div>
-        </div>
+        <QaTypeFilterBar className="mb-5" />
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
@@ -305,53 +255,78 @@ export function Screen4QaQuality() {
 
       {/* 04 Lỗi chung cả nhóm */}
       <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">04</span>
-          <h2 className="text-lg font-bold text-white tracking-tight">Lỗi chung cả nhóm</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">04</span>
+            <h2 className="text-lg font-bold text-white tracking-tight">Lỗi chung cả nhóm</h2>
+          </div>
+          {isFiltered && (
+            <span className="text-xs text-amber-400 font-mono">
+              Hiển thị {tracks.filter((t) => filterTrack(t, selectedQaTypes).isVisible).length}/{tracks.length} track
+              {tracks.filter((t) => !filterTrack(t, selectedQaTypes).isVisible).length > 0 &&
+                ` · (Đã ẩn ${tracks.filter((t) => !filterTrack(t, selectedQaTypes).isVisible).length} track chỉ có lỗi đã bỏ chọn)`}
+            </span>
+          )}
         </div>
         <p className="text-xs text-slate-400 mb-5">
           Track rủi ro cao ở ≥ 4/7 job. Cả nhóm làm cùng pre-label nên thường là lỗi gốc chưa ai sửa → chốt cách sửa chung một lần.
         </p>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-[#232836] text-[11px] text-slate-400 uppercase font-semibold">
-                <th className="py-2.5 px-3">Track</th>
-                <th className="py-2.5 px-2">Class</th>
-                <th className="py-2.5 px-2 text-center">Số job</th>
-                <th className="py-2.5 px-3">Ở bài của</th>
-                <th className="py-2.5 px-2">Cảnh báo</th>
-                <th className="py-2.5 px-3">Biểu hiện</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e2330]">
-              {tracks.map((t) => {
-                const jobPillColor =
-                  t.jobCount >= 6
-                    ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 font-bold'
-                    : t.jobCount === 5
-                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-semibold'
-                    : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+        {tracks.filter((t) => filterTrack(t, selectedQaTypes).isVisible).length === 0 ? (
+          <div className="p-8 text-center text-slate-400 bg-[#161a24] rounded-xl border border-[#232836] text-xs">
+            Không có track rủi ro cao nào thuộc các loại lỗi đang chọn ({selectedQaTypes.map((k) => k.toUpperCase()).join(', ')}).
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#232836] text-[11px] text-slate-400 uppercase font-semibold">
+                  <th className="py-2.5 px-3">Track</th>
+                  <th className="py-2.5 px-2">Class</th>
+                  <th className="py-2.5 px-2 text-center">Số job</th>
+                  <th className="py-2.5 px-3">Ở bài của</th>
+                  <th className="py-2.5 px-2">
+                    <div className="flex flex-col">
+                      <span>Cảnh báo</span>
+                      {isFiltered && <span className="text-[9px] text-amber-400 font-normal lowercase">(đã lọc)</span>}
+                    </div>
+                  </th>
+                  <th className="py-2.5 px-3">Biểu hiện</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1e2330]">
+                {tracks
+                  .map((t) => ({ track: t, dynamic: filterTrack(t, selectedQaTypes) }))
+                  .filter((item) => item.dynamic.isVisible)
+                  .map(({ track: t, dynamic }) => {
+                    const jobPillColor =
+                      t.jobCount >= 6
+                        ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 font-bold'
+                        : t.jobCount === 5
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-semibold'
+                        : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
 
-                return (
-                  <tr key={t.id} className="hover:bg-[#161a24] transition-colors">
-                    <td className="py-3 px-3 font-mono font-bold text-white whitespace-nowrap">{t.trackNo}</td>
-                    <td className="py-3 px-2 text-slate-300 whitespace-nowrap">{t.className}</td>
-                    <td className="py-3 px-2 text-center whitespace-nowrap">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs border ${jobPillColor}`}>
-                        • {t.jobCount}/7
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-[11px] font-mono text-slate-300">{t.inJobs}</td>
-                    <td className="py-3 px-2 font-mono font-semibold text-amber-300 whitespace-nowrap">{t.warnings}</td>
-                    <td className="py-3 px-3 text-slate-300 text-xs leading-relaxed">{t.symptom}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    return (
+                      <tr key={t.id} className="hover:bg-[#161a24] transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-white whitespace-nowrap">{t.trackNo}</td>
+                        <td className="py-3 px-2 text-slate-300 whitespace-nowrap">{t.className}</td>
+                        <td className="py-3 px-2 text-center whitespace-nowrap">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs border ${jobPillColor}`}>
+                            • {t.jobCount}/7
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-[11px] font-mono text-slate-300">{t.inJobs}</td>
+                        <td className="py-3 px-2 font-mono font-semibold text-amber-300 whitespace-nowrap">
+                          {dynamic.warningsText}
+                        </td>
+                        <td className="py-3 px-3 text-slate-300 text-xs leading-relaxed">{dynamic.symptomText}</td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <ToolQaImportModal

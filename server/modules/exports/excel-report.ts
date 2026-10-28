@@ -4,6 +4,7 @@ import { fmtDate, fmtDayMonth, weekRangeLabel } from '../../../shared/format';
 import { formatCell } from '../../../shared/cell';
 import type { ReportSectionKey } from '../../../shared/report-sections';
 import { splitLines } from '../../../shared/text';
+import { filterMemberCoaching, filterTrack } from '../../../shared/qa';
 import type { Grade, WeekReport } from '../../../shared/types';
 
 /**
@@ -347,8 +348,11 @@ const builders: Record<
     subH.getCell(1).alignment = { horizontal: 'left' };
 
     headerRow(sheet, ['Mã Track', 'Loại Class', 'Số Job', 'Ở bài của', 'Tổng cảnh báo', 'Biểu hiện lỗi']);
+    const activeQaList = selectedQaTypes && selectedQaTypes.length > 0 ? selectedQaTypes : QA_TYPES.map((t) => t.key);
     report.tracks.forEach((t) => {
-      const row = sheet.addRow([t.trackNo, t.className, t.jobCount, t.inJobs, t.warnings, t.symptom]);
+      const dynamic = filterTrack(t, activeQaList);
+      if (!dynamic.isVisible) return;
+      const row = sheet.addRow([t.trackNo, t.className, t.jobCount, t.inJobs, dynamic.warningsText, dynamic.symptomText]);
       row.height = 20;
       row.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true };
       row.getCell(5).font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: 'FFDC2626' } };
@@ -520,20 +524,23 @@ const builders: Record<
     applyArial(sheet);
   },
 
-  coaching(wb, report) {
+  coaching(wb, report, selectedQaTypes?: string[]) {
     const sheet = wb.addWorksheet('06. Coaching & Issue');
     titleRows(sheet, report, 'KẾ HOẠCH KÈM CẶP 1-1 VÀ THEO DÕI ISSUE DỰ ÁN', 6);
     headerRow(sheet, ['Thành viên', 'Xếp loại & TB', 'Phong cách gán nhãn', 'Lỗi hay gặp', 'Training đề xuất', 'Mục tiêu tuần tới']);
 
+    const activeQaList = selectedQaTypes && selectedQaTypes.length > 0 ? selectedQaTypes : QA_TYPES.map((t) => t.key);
+
     for (const m of report.ranking) {
       const c = m.coaching;
+      const filtered = filterMemberCoaching(c, activeQaList);
       const row = sheet.addRow([
         m.name,
         `${GRADE_LABEL[m.grade]} (${m.avg})`,
         c?.style ?? '–',
-        splitLines(c?.commonErrors ?? '').join('\n') || '–',
-        splitLines(c?.training ?? '').join('\n') || '–',
-        c?.goals ?? '–',
+        filtered.commonErrors.join('\n') || '–',
+        filtered.training.join('\n') || '–',
+        filtered.goals || c?.goals || '–',
       ]);
       row.alignment = { wrapText: true, vertical: 'top' };
       row.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true };
@@ -615,10 +622,8 @@ export async function buildReportXlsx(
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'ADAS KPI';
   for (const key of sections) {
-    if (key === 'quality') {
-      builders.quality(workbook, report, selectedQaTypes);
-    } else if (builders[key]) {
-      builders[key](workbook, report);
+    if (builders[key]) {
+      builders[key](workbook, report, selectedQaTypes);
     }
   }
   return Buffer.from(await workbook.xlsx.writeBuffer());

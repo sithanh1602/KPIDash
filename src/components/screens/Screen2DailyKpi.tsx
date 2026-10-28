@@ -1,13 +1,17 @@
 import React from 'react';
 import { useWeek } from '../../context/WeekContext';
 import { fmtDecimal, fmtInt } from '@shared/format';
+import { QA_TYPES } from '@shared/constants';
+import { getMemberDynamicQa, getMemberDynamicRiskAndInsight } from '@shared/qa';
 import { StatusBadge } from '../common/Badge';
+import { QaTypeFilterBar } from '../common/QaTypeFilterBar';
 
 export function Screen2DailyKpi() {
-  const { report } = useWeek();
+  const { report, selectedQaTypes } = useWeek();
   if (!report) return null;
 
-  const { week, members, dayLabels, actions } = report;
+  const { week, members, dayLabels, actions, tracks } = report;
+  const isFiltered = selectedQaTypes.length < QA_TYPES.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -178,12 +182,21 @@ export function Screen2DailyKpi() {
         {/* Right: Đạt KPI thì chất lượng thế nào */}
         <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md flex flex-col justify-between">
           <div>
-            <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-1">
-              ĐẠT KPI THÌ CHẤT LƯỢNG THẾ NÀO?
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Kết hợp sản lượng và rủi ro để đưa ra nhận định
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">
+                ĐẠT KPI THÌ CHẤT LƯỢNG THẾ NÀO?
+              </h3>
+              {isFiltered && (
+                <span className="text-[11px] text-amber-400 font-mono">
+                  (Đang tính {selectedQaTypes.length}/6 loại lỗi)
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mb-3">
+              Kết hợp sản lượng và rủi ro để đưa ra nhận định (đồng bộ theo bộ chọn lỗi)
             </p>
+
+            <QaTypeFilterBar compact className="mb-4 text-xs py-2 px-3" label="Lọc lỗi:" />
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
@@ -192,30 +205,55 @@ export function Screen2DailyKpi() {
                     <th className="py-2 px-2">Annotator</th>
                     <th className="py-2 px-1 text-center">% KPI</th>
                     <th className="py-2 px-2 text-center">Xếp loại</th>
-                    <th className="py-2 px-2 text-right">Cảnh báo</th>
-                    <th className="py-2 px-2 text-right">Track rủi ro</th>
+                    <th className="py-2 px-2 text-right">
+                      <div className="flex flex-col items-end">
+                        <span>Cảnh báo</span>
+                        {isFiltered && <span className="text-[9px] text-amber-400 font-normal lowercase">(đã lọc)</span>}
+                      </div>
+                    </th>
+                    <th className="py-2 px-2 text-right">
+                      <div className="flex flex-col items-end">
+                        <span>Track rủi ro</span>
+                        {isFiltered && <span className="text-[9px] text-amber-400 font-normal lowercase">(đã lọc)</span>}
+                      </div>
+                    </th>
                     <th className="py-2 px-3">Nhận định</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1e2330]">
-                  {members.map((m) => (
-                    <tr key={m.id} className="hover:bg-[#161a24] transition-colors">
-                      <td className="py-2.5 px-2 font-bold text-white whitespace-nowrap">{m.name}</td>
-                      <td className="py-2.5 px-1 text-center font-bold text-slate-300">{m.kpiPercent}%</td>
-                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                        <StatusBadge grade={m.grade} />
-                      </td>
-                      <td className="py-2.5 px-2 text-right font-mono text-slate-300">
-                        {m.qa ? `${fmtDecimal(m.qa.warningPercent)}%` : '–'}
-                      </td>
-                      <td className="py-2.5 px-2 text-right font-mono font-bold text-amber-400">
-                        {m.qa ? m.qa.riskHigh : '–'}
-                      </td>
-                      <td className="py-2.5 px-3 text-[11px] text-slate-300 leading-tight">
-                        {m.insight}
-                      </td>
-                    </tr>
-                  ))}
+                  {members.map((m) => {
+                    const dynamicQa = getMemberDynamicQa(m.qa, selectedQaTypes);
+                    const { riskHigh: dynamicRiskHigh, insight: dynamicInsight } = getMemberDynamicRiskAndInsight(
+                      m,
+                      selectedQaTypes,
+                      tracks,
+                    );
+
+                    return (
+                      <tr key={m.id} className="hover:bg-[#161a24] transition-colors">
+                        <td className="py-2.5 px-2 font-bold text-white whitespace-nowrap">{m.name}</td>
+                        <td className="py-2.5 px-1 text-center font-bold text-slate-300">{m.kpiPercent}%</td>
+                        <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                          <StatusBadge grade={m.grade} />
+                        </td>
+                        <td className="py-2.5 px-2 text-right font-mono text-slate-300">
+                          {m.qa ? (
+                            <span className={isFiltered ? 'text-amber-300 font-bold' : ''}>
+                              {fmtDecimal(dynamicQa.percent)}%
+                            </span>
+                          ) : (
+                            '–'
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2 text-right font-mono font-bold text-amber-400">
+                          {m.qa ? dynamicRiskHigh : '–'}
+                        </td>
+                        <td className="py-2.5 px-3 text-[11px] text-slate-300 leading-tight">
+                          {dynamicInsight}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
