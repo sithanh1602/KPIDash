@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { CalendarDays, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, ChevronDown, Edit3, Plus, Settings2, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useWeek } from '../../context/WeekContext';
-import { addDays, getIsoWeekNumber, weekRangeLabel } from '@shared/format';
+import { addDays, getIsoWeekNumber, getMonday, weekRangeLabel } from '@shared/format';
 import { Modal } from '../common/Modal';
-import { apiCreateWeek, apiDeleteWeek } from '../../api/client';
+import { apiCreateWeek, apiDeleteWeek, apiUpdateWeek } from '../../api/client';
 import { showToast } from '../../utils/toast';
 
 export function WeekSelector() {
   const { user } = useAuth();
-  const { weeks, currentWeekId, setCurrentWeekId, refreshWeeks } = useWeek();
+  const { weeks, currentWeekId, setCurrentWeekId, refreshWeeks, report, refreshReport } = useWeek();
 
   // Create Week state
   const [createWeekModal, setCreateWeekModal] = useState(false);
@@ -18,8 +18,20 @@ export function WeekSelector() {
   });
   const [newStartDate, setNewStartDate] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
+  const [newProjectTag, setNewProjectTag] = useState('VF-ADAS-2026');
+  const [newTarget, setNewTarget] = useState(1000);
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState('');
+
+  // Edit Week state
+  const [editWeekModal, setEditWeekModal] = useState(false);
+  const [editWeekNumber, setEditWeekNumber] = useState(1);
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editProjectTag, setEditProjectTag] = useState('VF-ADAS-2026');
+  const [editTarget, setEditTarget] = useState(1000);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editErr, setEditErr] = useState('');
 
   // Delete Week state
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(false);
@@ -30,10 +42,63 @@ export function WeekSelector() {
   const isLeader = user?.role === 'leader';
 
   const handleStartDateChange = (val: string) => {
-    setNewStartDate(val);
-    if (val) {
-      setNewEndDate(addDays(val, 5));
-      setNewWeekNumber(getIsoWeekNumber(val));
+    if (!val) {
+      setNewStartDate('');
+      setNewEndDate('');
+      return;
+    }
+    const monday = getMonday(val);
+    setNewStartDate(monday);
+    setNewEndDate(addDays(monday, 5));
+    setNewWeekNumber(getIsoWeekNumber(monday));
+  };
+
+  const handleEditStartDateChange = (val: string) => {
+    if (!val) {
+      setEditStartDate('');
+      setEditEndDate('');
+      return;
+    }
+    const monday = getMonday(val);
+    setEditStartDate(monday);
+    setEditEndDate(addDays(monday, 5));
+    setEditWeekNumber(getIsoWeekNumber(monday));
+  };
+
+  const openEditModal = () => {
+    if (!currentWeek) return;
+    setEditWeekNumber(currentWeek.weekNumber);
+    setEditStartDate(currentWeek.startDate);
+    setEditEndDate(currentWeek.endDate);
+    setEditProjectTag(report?.week.projectTag || currentWeek.projectTag || 'VF-ADAS-2026');
+    setEditTarget(report?.week.target || 1000);
+    setEditErr('');
+    setEditWeekModal(true);
+  };
+
+  const handleSaveEditWeek = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentWeekId || !editStartDate || !editEndDate || !editWeekNumber) return;
+    setSavingEdit(true);
+    setEditErr('');
+    try {
+      await apiUpdateWeek(currentWeekId, {
+        weekNumber: Number(editWeekNumber),
+        startDate: editStartDate,
+        endDate: editEndDate,
+        projectTag: editProjectTag.trim(),
+        target: Number(editTarget),
+      });
+      await refreshWeeks();
+      await refreshReport();
+      setEditWeekModal(false);
+      showToast.success('Cập nhật tuần thành công', `Đã cập nhật Tuần ${editWeekNumber} (${weekRangeLabel(editStartDate, editEndDate)})`);
+    } catch (err) {
+      const msg = (err as Error).message;
+      setEditErr(msg);
+      showToast.error('Không thể cập nhật tuần', msg);
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -47,6 +112,8 @@ export function WeekSelector() {
         weekNumber: Number(newWeekNumber),
         startDate: newStartDate,
         endDate: newEndDate,
+        projectTag: newProjectTag.trim(),
+        target: Number(newTarget),
       });
       await refreshWeeks();
       setCurrentWeekId(created.id);
@@ -71,7 +138,7 @@ export function WeekSelector() {
       await apiDeleteWeek(currentWeekId);
       await refreshWeeks();
       setDeleteConfirmModal(false);
-      showToast.success('Đã xóa tuần báo cáo', 'Toàn bộ dữ liệu tuần đã được dọn sạch.');
+      showToast.success('Xóa tuần thành công', 'Tuần báo cáo đã được xóa.');
     } catch (err) {
       const msg = (err as Error).message;
       setDeleteErr(msg);
@@ -124,6 +191,17 @@ export function WeekSelector() {
           </button>
         )}
 
+        {/* Nút sửa tuần (chỉ Leader) */}
+        {isLeader && currentWeek && (
+          <button
+            onClick={openEditModal}
+            title="Chỉnh sửa thông tin tuần hiện tại (lịch, mốc KPI, tag dự án)"
+            className="p-1.5 bg-[#151922] hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-[#232836] hover:border-emerald-500/40 rounded-xl transition-colors"
+          >
+            <Edit3 size={15} />
+          </button>
+        )}
+
         {/* Nút xóa tuần (chỉ Leader) */}
         {isLeader && currentWeek && (
           <button
@@ -141,7 +219,7 @@ export function WeekSelector() {
         isOpen={createWeekModal}
         onClose={() => setCreateWeekModal(false)}
         title="Tạo tuần báo cáo mới"
-        subtitle="Chọn ngày bắt đầu (Thứ Hai), hệ thống sẽ tự động điền ngày kết thúc (Thứ Bảy)."
+        subtitle="Chọn ngày bất kỳ trong tuần, hệ thống sẽ tự động căn chuẩn từ Thứ Hai đến Thứ Bảy."
       >
         <form onSubmit={handleCreateWeek} className="space-y-4">
           {createErr && (
@@ -150,26 +228,56 @@ export function WeekSelector() {
             </div>
           )}
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Số thứ tự tuần (Ví dụ: 43)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="53"
+                required
+                value={newWeekNumber}
+                onChange={(e) => setNewWeekNumber(Number(e.target.value))}
+                placeholder="43"
+                className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Tag Dự án (Project Tag)
+              </label>
+              <input
+                type="text"
+                required
+                value={newProjectTag}
+                onChange={(e) => setNewProjectTag(e.target.value)}
+                placeholder="VD: VF-ADAS-2026"
+                className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Số thứ tự tuần (Ví dụ: 43)
+              Mốc KPI ngày (Mặc định: 1.000 cuboid)
             </label>
             <input
               type="number"
-              min="1"
-              max="53"
+              min="100"
+              max="10000"
               required
-              value={newWeekNumber}
-              onChange={(e) => setNewWeekNumber(Number(e.target.value))}
-              placeholder="Nhập số tuần (ví dụ: 43)"
-              className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              value={newTarget}
+              onChange={(e) => setNewTarget(Number(e.target.value))}
+              className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Ngày bắt đầu (Thứ Hai)
+                Ngày bắt đầu (Tự động căn về Thứ Hai)
               </label>
               <input
                 type="date"
@@ -194,9 +302,14 @@ export function WeekSelector() {
           </div>
 
           {newStartDate && newEndDate && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300">
-              <span className="font-semibold">Xem trước hiển thị: </span>
-              Tuần {newWeekNumber} ({weekRangeLabel(newStartDate, newEndDate)})
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300 space-y-1">
+              <div>
+                <span className="font-semibold">Xem trước lịch: </span>
+                Tuần {newWeekNumber} ({weekRangeLabel(newStartDate, newEndDate)})
+              </div>
+              <div className="text-[11px] text-emerald-400/80">
+                Tag Dự án: <strong className="font-mono">{newProjectTag}</strong> · Mốc KPI: <strong>{newTarget} cuboid/ngày</strong>
+              </div>
             </div>
           )}
 
@@ -214,6 +327,123 @@ export function WeekSelector() {
               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
             >
               {creating ? 'Đang tạo...' : 'Tạo tuần'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Chỉnh sửa thông tin tuần */}
+      <Modal
+        isOpen={editWeekModal}
+        onClose={() => setEditWeekModal(false)}
+        title="Chỉnh sửa thông tin tuần báo cáo"
+        subtitle="Cập nhật lại lịch gốc (Thứ Hai đến Thứ Bảy), Tag dự án và Mốc KPI cho tuần."
+      >
+        <form onSubmit={handleSaveEditWeek} className="space-y-4">
+          {editErr && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+              {editErr}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Số thứ tự tuần
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="53"
+                required
+                value={editWeekNumber}
+                onChange={(e) => setEditWeekNumber(Number(e.target.value))}
+                className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Tag Dự án (Project Tag)
+              </label>
+              <input
+                type="text"
+                required
+                value={editProjectTag}
+                onChange={(e) => setEditProjectTag(e.target.value)}
+                placeholder="VD: VF-ADAS-2026"
+                className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Mốc KPI ngày (Mặc định: 1.000 cuboid)
+            </label>
+            <input
+              type="number"
+              min="100"
+              max="10000"
+              required
+              value={editTarget}
+              onChange={(e) => setEditTarget(Number(e.target.value))}
+              className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Ngày bắt đầu (Thứ Hai chuẩn)
+              </label>
+              <input
+                type="date"
+                required
+                value={editStartDate}
+                onChange={(e) => handleEditStartDateChange(e.target.value)}
+                className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Ngày kết thúc (Thứ Bảy chuẩn)
+              </label>
+              <input
+                type="date"
+                required
+                value={editEndDate}
+                onChange={(e) => setNewEndDate(e.target.value)}
+                className="w-full bg-[#10131a] border border-[#232836] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          {editStartDate && editEndDate && (
+            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 space-y-1">
+              <div>
+                <span className="font-semibold">Lịch sau cập nhật: </span>
+                Tuần {editWeekNumber} ({weekRangeLabel(editStartDate, editEndDate)})
+              </div>
+              <div className="text-[11px] text-blue-400/80">
+                Tag Dự án: <strong className="font-mono">{editProjectTag}</strong> · Mốc KPI: <strong>{editTarget} cuboid/ngày</strong>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-[#232836]">
+            <button
+              type="button"
+              onClick={() => setEditWeekModal(false)}
+              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:bg-slate-800"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={savingEdit || !editStartDate || !editEndDate || !editWeekNumber}
+              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
+            >
+              {savingEdit ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>
         </form>

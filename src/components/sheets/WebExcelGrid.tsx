@@ -22,7 +22,7 @@ import { showToast } from '../../utils/toast';
 
 export function WebExcelGrid() {
   const { user } = useAuth();
-  const { currentWeekId, selectedSheetKey, setSelectedSheetKey, refreshReport } = useWeek();
+  const { currentWeekId, selectedSheetKey, setSelectedSheetKey, refreshReport, report } = useWeek();
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -315,15 +315,23 @@ export function WebExcelGrid() {
               <thead className="sticky top-0 bg-[#161a24] z-20 border-b border-[#232836]">
                 <tr className="text-slate-400 text-[11px] uppercase font-semibold">
                   <th className="py-2.5 px-3 w-10 text-center">#</th>
-                  {currentDef.columns.map((col) => (
-                    <th
-                      key={col.key}
-                      style={{ minWidth: col.width || 120 }}
-                      className="py-2.5 px-3 whitespace-nowrap"
-                    >
-                      {col.header}
-                    </th>
-                  ))}
+                  {currentDef.columns.map((col) => {
+                    let headerLabel = col.header;
+                    if (selectedSheetKey === 'production' && col.type === 'cell' && report?.dayLabels) {
+                      const dayIdx = Number(col.key.slice(1));
+                      if (report.dayLabels[dayIdx]) headerLabel = report.dayLabels[dayIdx];
+                    }
+
+                    return (
+                      <th
+                        key={col.key}
+                        style={{ minWidth: col.width || 120 }}
+                        className="py-2.5 px-3 whitespace-nowrap"
+                      >
+                        {headerLabel}
+                      </th>
+                    );
+                  })}
                   {currentDef.scope === 'free' && canModifyFreeRows && <th className="py-2.5 px-2 w-10 text-center">Xóa</th>}
                 </tr>
               </thead>
@@ -435,15 +443,21 @@ export function WebExcelGrid() {
                                 title="Chọn nhanh số cuboid: 400, 500, 600, 1000, 1200..."
                               >
                                 <option value="" disabled hidden>▾</option>
-                                <optgroup label="Sản lượng chuẩn" className="bg-[#171b26] text-slate-300 font-sans">
+                                <optgroup label="Sản lượng chuẩn (1.0 công)" className="bg-[#171b26] text-slate-300 font-sans">
                                   <option value="400" className="bg-[#171b26] text-white font-mono">400 cuboid</option>
                                   <option value="500" className="bg-[#171b26] text-white font-mono">500 cuboid</option>
                                   <option value="600" className="bg-[#171b26] text-white font-mono">600 cuboid</option>
-                                  <option value="1000" className="bg-[#171b26] text-white font-mono">1000 cuboid</option>
+                                  <option value="1000" className="bg-[#171b26] text-white font-mono">1000 cuboid (KPI)</option>
                                   <option value="1200" className="bg-[#171b26] text-white font-mono">1200 cuboid</option>
                                 </optgroup>
-                                <optgroup label="Trạng thái khác" className="bg-[#171b26] text-slate-300 font-sans">
-                                  <option value="Nghỉ" className="bg-[#171b26] text-amber-400 font-sans">Nghỉ</option>
+                                <optgroup label="Nghỉ nửa ngày (0.5 công - Giảm 50% KPI)" className="bg-[#171b26] text-amber-300 font-sans">
+                                  <option value="Nghỉ 0.5" className="bg-[#171b26] text-amber-400 font-sans">Nghỉ 0.5 (Nghỉ nửa ngày)</option>
+                                  <option value="400 (0.5)" className="bg-[#171b26] text-amber-200 font-mono">400 (0.5 công)</option>
+                                  <option value="500 (0.5)" className="bg-[#171b26] text-amber-200 font-mono">500 (0.5 công)</option>
+                                  <option value="600 (0.5)" className="bg-[#171b26] text-amber-200 font-mono">600 (0.5 công)</option>
+                                </optgroup>
+                                <optgroup label="Nghỉ cả ngày (0 công - Giảm 100% KPI)" className="bg-[#171b26] text-rose-300 font-sans">
+                                  <option value="Nghỉ" className="bg-[#171b26] text-rose-400 font-sans">Nghỉ (Nghỉ 1 ngày)</option>
                                   <option value="Done job" className="bg-[#171b26] text-blue-400 font-sans">Done job</option>
                                 </optgroup>
                               </select>

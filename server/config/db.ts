@@ -21,6 +21,21 @@ export const pool: Pool = mysql.createPool({
   connectionLimit: 10,
 });
 
+/** Chạy kiểm tra và bổ sung cột nhẹ nhàng khi khởi động */
+export async function runAutoMigrations() {
+  try {
+    const [cols] = await pool.query<Row[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'weeks' AND COLUMN_NAME = 'project_tag'",
+    );
+    if (cols.length === 0) {
+      await pool.query("ALTER TABLE weeks ADD COLUMN project_tag VARCHAR(100) NOT NULL DEFAULT 'VF-ADAS-2026'");
+      console.log('✅ [AutoMigration] Đã bổ sung cột weeks.project_tag');
+    }
+  } catch (e) {
+    // Không làm gián đoạn nếu DB chưa sẵn sàng
+  }
+}
+
 /** Chạy `fn` trong một transaction; lỗi bất kỳ sẽ rollback toàn bộ. */
 export async function withTransaction<T>(fn: (connection: PoolConnection) => Promise<T>): Promise<T> {
   const connection = await pool.getConnection();

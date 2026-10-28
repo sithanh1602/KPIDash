@@ -8,7 +8,7 @@ import { pool } from '../../config/db';
 import { cacheGet, cacheSet, invalidateWeekCache } from '../../config/redis';
 import { authenticate, requireRole } from '../../middleware/auth';
 import { badRequest, notFound, HttpError } from '../../middleware/errors';
-import { buildReportXlsx } from '../exports/excel-report';
+import { buildReportXlsx, buildProjectReportXlsx } from '../exports/excel-report';
 import { parseImport } from '../imports/import-parser';
 import { parseToolQaBuffer } from '../imports/tool-qa-parser';
 import { buildTemplateCsv, buildTemplateXlsx } from '../imports/template';
@@ -16,8 +16,10 @@ import { loadSheet, saveSheet } from '../sheets/sheet-store';
 import {
   createWeek,
   deleteWeek,
+  getAllProjectTags,
   getWeek,
   getWeekMembers,
+  getWeeksByProjectTag,
   listWeeks,
   loadRawWeek,
   setWeekMembers,
@@ -30,6 +32,37 @@ export const weeksRouter = Router();
 // Tất cả thao tác trên tuần yêu cầu đăng nhập
 weeksRouter.use(authenticate);
 
+/* ------------------------------ Danh mục Dự án & Tuần -------------------- */
+
+weeksRouter.get('/projects/tags', async (_req, res) => {
+  res.json(await getAllProjectTags());
+});
+
+weeksRouter.get('/projects/:tag/weeks', async (req, res) => {
+  res.json(await getWeeksByProjectTag(req.params.tag));
+});
+
+weeksRouter.post('/export/project', async (req, res) => {
+  const schema = z.object({
+    projectTag: z.string().min(1),
+    selectedQaTypes: z.array(z.string()).optional(),
+  });
+  const body = schema.parse(req.body);
+  const weekItems = await getWeeksByProjectTag(body.projectTag);
+  if (!weekItems.length) throw badRequest(`Không tìm thấy tuần nào thuộc dự án "${body.projectTag}".`);
+
+  const reports: WeekReport[] = [];
+  for (const item of weekItems) {
+    const raw = await loadRawWeek(pool, item.id);
+    reports.push(buildReport(raw));
+  }
+
+  const buffer = await buildProjectReportXlsx(reports, body.projectTag, body.selectedQaTypes);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="bao-cao-du-an-${body.projectTag}.xlsx"`);
+  res.send(buffer);
+});
+
 /* ------------------------------ Danh sách & Chi tiết tuần ----------------- */
 
 weeksRouter.get('/', async (_req, res) => {
@@ -40,6 +73,8 @@ const createWeekSchema = z.object({
   weekNumber: z.coerce.number().int().positive('Số thứ tự tuần phải lớn hơn 0'),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày bắt đầu phải có dạng YYYY-MM-DD'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày kết thúc phải có dạng YYYY-MM-DD'),
+  projectTag: z.string().max(100).optional(),
+  target: z.coerce.number().int().positive().optional(),
 });
 
 weeksRouter.post('/', requireRole('leader'), async (req, res) => {
@@ -54,6 +89,7 @@ weeksRouter.get('/:id', async (req, res) => {
 });
 
 const updateWeekSchema = z.object({
+  projectTag: z.string().max(100).optional(),
   weekNumber: z.number().int().positive().optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),

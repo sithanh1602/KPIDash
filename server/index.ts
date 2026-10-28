@@ -8,9 +8,10 @@ import { authRouter } from './modules/auth/auth.routes';
 import { membersRouter } from './modules/members/members.routes';
 import { weeksRouter } from './modules/weeks/weeks.routes';
 import { usersRouter } from './modules/users/users.routes';
-import { pool } from './config/db';
+import { pool, runAutoMigrations } from './config/db';
 
 assertServerConfig();
+runAutoMigrations();
 
 const app = express();
 

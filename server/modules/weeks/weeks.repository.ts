@@ -27,6 +27,7 @@ export function mapWeek(row: Row): WeekMeta {
     startDate: row.start_date,
     endDate: row.end_date,
     dataAsOf: row.data_as_of,
+    projectTag: (row.project_tag as string) || 'VF-ADAS-2026',
     orgName: row.org_name,
     teamName: row.team_name,
     discipline: row.discipline,
@@ -52,7 +53,7 @@ export async function getWeek(db: Db, id: number): Promise<WeekMeta> {
 
 export async function listWeeks() {
   const [rows] = await pool.query<Row[]>(
-    `SELECT w.id, w.week_number, w.start_date, w.end_date,
+    `SELECT w.id, w.week_number, w.start_date, w.end_date, COALESCE(w.project_tag, 'VF-ADAS-2026') AS project_tag,
             (SELECT COUNT(*) FROM week_members wm WHERE wm.week_id = w.id) AS member_count
      FROM weeks w ORDER BY w.week_number DESC, w.start_date DESC`,
   );
@@ -61,6 +62,7 @@ export async function listWeeks() {
     weekNumber: Number(row.week_number ?? 1),
     startDate: row.start_date as string,
     endDate: row.end_date as string,
+    projectTag: (row.project_tag as string) || 'VF-ADAS-2026',
     memberCount: Number(row.member_count),
   }));
 }
@@ -69,6 +71,8 @@ export interface CreateWeekInput {
   weekNumber: number;
   startDate: string;
   endDate: string;
+  projectTag?: string;
+  target?: number;
 }
 
 /**
@@ -76,17 +80,23 @@ export interface CreateWeekInput {
  * Kế thừa thông tin chung và danh sách thành viên từ tuần gần nhất nếu có.
  */
 export async function createWeek(input: CreateWeekInput, userId: number): Promise<WeekMeta> {
-  const { weekNumber, startDate, endDate } = input;
+  const { weekNumber, startDate, endDate, projectTag, target } = input;
   return withTransaction(async (connection) => {
     const [previous] = await connection.execute<Row[]>(
       'SELECT * FROM weeks ORDER BY id DESC LIMIT 1',
     );
     const base = previous[0];
+    const assignedProjectTag = projectTag || base?.project_tag || 'VF-ADAS-2026';
+    const assignedTarget = target ?? base?.target ?? 1000;
+    const assignedNormal = base?.normal_threshold ?? 800;
+    const assignedExcellent = base?.excellent_threshold ?? 1000;
+
     const [result] = await connection.execute<ResultSetHeader>(
-      `INSERT INTO weeks (week_number, start_date, end_date, data_as_of, org_name, team_name, discipline, floor_name, lead_name, mentor_name,
+      `INSERT INTO weeks (project_tag, week_number, start_date, end_date, data_as_of, org_name, team_name, discipline, floor_name, lead_name, mentor_name,
                           target, normal_threshold, excellent_threshold, data_notes, summary_override, updated_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?)`,
       [
+        assignedProjectTag,
         weekNumber,
         startDate,
         endDate,
@@ -97,9 +107,9 @@ export async function createWeek(input: CreateWeekInput, userId: number): Promis
         base?.floor_name ?? '',
         base?.lead_name ?? 'Nguyễn Đăng Huân',
         base?.mentor_name ?? '',
-        base?.target ?? 1200,
-        base?.normal_threshold ?? 1000,
-        base?.excellent_threshold ?? 1200,
+        assignedTarget,
+        assignedNormal,
+        assignedExcellent,
         userId,
       ],
     );
@@ -118,6 +128,7 @@ export async function createWeek(input: CreateWeekInput, userId: number): Promis
 export type WeekPatch = Partial<Omit<WeekMeta, 'id'>>;
 
 const WEEK_COLUMNS: Record<keyof WeekPatch, string> = {
+  projectTag: 'project_tag',
   weekNumber: 'week_number',
   startDate: 'start_date',
   endDate: 'end_date',
@@ -137,6 +148,37 @@ const WEEK_COLUMNS: Record<keyof WeekPatch, string> = {
   dataNotes: 'data_notes',
   summaryOverride: 'summary_override',
 };
+
+export async function getAllProjectTags(): Promise<string[]> {
+  try {
+    const [rows] = await pool.query<Row[]>(
+      `SELECT DISTINCT COALESCE(NULLIF(project_tag, ''), 'VF-ADAS-2026') AS tag FROM weeks ORDER BY tag ASC`,
+    );
+    const tags = rows.map((r) => r.tag as string).filter(Boolean);
+    return tags.length > 0 ? tags : ['VF-ADAS-2026'];
+  } catch {
+    return ['VF-ADAS-2026'];
+  }
+}
+
+export async function getWeeksByProjectTag(projectTag: string) {
+  const [rows] = await pool.query<Row[]>(
+    `SELECT w.id, w.week_number, w.start_date, w.end_date, COALESCE(w.project_tag, 'VF-ADAS-2026') AS project_tag,
+            (SELECT COUNT(*) FROM week_members wm WHERE wm.week_id = w.id) AS member_count
+     FROM weeks w 
+     WHERE w.project_tag = ?
+     ORDER BY w.start_date ASC, w.week_number ASC`,
+    [projectTag],
+  );
+  return rows.map((row) => ({
+    id: row.id as number,
+    weekNumber: Number(row.week_number ?? 1),
+    startDate: row.start_date as string,
+    endDate: row.end_date as string,
+    projectTag: (row.project_tag as string) || 'VF-ADAS-2026',
+    memberCount: Number(row.member_count),
+  }));
+}
 
 export async function updateWeek(id: number, patch: WeekPatch, userId: number): Promise<WeekMeta> {
   const entries = Object.entries(patch).filter(([key, value]) => key in WEEK_COLUMNS && value !== undefined) as [keyof WeekPatch, string | number][];
@@ -220,11 +262,13 @@ export async function loadRawWeek(db: Db, weekId: number): Promise<RawWeekData> 
   for (const row of dayRows) {
     const days = daysByMember.get(row.member_id);
     if (days && row.day_index < DAY_COUNT) {
+      const isHalf = row.note?.includes('[0.5c]');
       days[row.day_index] = {
         status: row.status,
         cuboids: row.cuboids,
         estimated: !!row.estimated,
-        note: row.note,
+        weight: isHalf ? 0.5 : (row.status === 'work' ? 1.0 : 0.0),
+        note: row.note ? row.note.replace(/\[0\.5c\]\s*/g, '').trim() : '',
       };
     }
   }

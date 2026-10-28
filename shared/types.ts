@@ -26,6 +26,7 @@ export interface WeekMeta {
   endDate: string;
   /** Ngày chốt số liệu (vd 2026-10-25) */
   dataAsOf: string;
+  projectTag: string; // Mã/Tag dự án (vd: VF-ADAS-2026, LIDAR-PHASE-1)
   orgName: string; // VINFAST
   teamName: string; // TEAM T01
   discipline: string; // 3D LiDAR
@@ -48,6 +49,7 @@ export interface WeekListItem {
   weekNumber: number;
   startDate: string;
   endDate: string;
+  projectTag?: string;
   memberCount: number;
 }
 
@@ -68,6 +70,8 @@ export interface DayEntry {
   cuboids: number | null;
   /** Số ước tính (dấu * trong báo cáo) */
   estimated: boolean;
+  /** Trọng số ngày công: 1.0 (chuẩn), 0.5 (nghỉ nửa ngày), 0.0 (nghỉ cả ngày) */
+  weight?: number;
   note: string;
 }
 

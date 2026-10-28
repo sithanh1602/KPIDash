@@ -144,7 +144,10 @@ async function saveMemberRows(connection: PoolConnection, weekId: number, key: S
       await connection.execute('DELETE FROM daily_entries WHERE week_id = ? AND member_id = ?', [weekId, memberId]);
       for (const [day, entry] of parsed.days.entries()) {
         if (!entry) continue;
-        const note = day === asOfIndex ? parsed.todayNote : (notes.get(day) ?? '');
+        const userNote = day === asOfIndex ? parsed.todayNote : (notes.get(day) ?? '');
+        const isHalf = entry.weight === 0.5;
+        const cleanNote = userNote.replace(/\[0\.5c\]\s*/g, '').trim();
+        const note = isHalf ? `[0.5c] ${cleanNote}`.trim() : cleanNote;
         await connection.execute(
           'INSERT INTO daily_entries (week_id, member_id, day_index, status, cuboids, estimated, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [weekId, memberId, day, entry.status, entry.cuboids, Number(entry.estimated), note],

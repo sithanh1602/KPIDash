@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import { ATTITUDE_LABEL, GRADE_LABEL, QA_TYPES } from '../../../shared/constants';
-import { fmtDate, weekRangeLabel } from '../../../shared/format';
+import { fmtDate, fmtDayMonth, weekRangeLabel } from '../../../shared/format';
 import { formatCell } from '../../../shared/cell';
 import type { ReportSectionKey } from '../../../shared/report-sections';
 import { splitLines } from '../../../shared/text';
@@ -621,5 +621,165 @@ export async function buildReportXlsx(
       builders[key](workbook, report);
     }
   }
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+export async function buildProjectReportXlsx(
+  reports: WeekReport[],
+  projectTag: string,
+  selectedQaTypes?: string[],
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'ADAS KPI';
+
+  if (reports.length === 0) {
+    const sheet = workbook.addWorksheet('Dự án');
+    sheet.addRow([`Dự án ${projectTag} chưa có dữ liệu tuần nào.`]);
+    return Buffer.from(await workbook.xlsx.writeBuffer());
+  }
+
+  // 1. Sheet Tổng hợp Lũy kế Dự án
+  const summarySheet = workbook.addWorksheet('01. Lũy kế Dự án');
+  const firstWeek = reports[0].week;
+  const lastWeek = reports[reports.length - 1].week;
+  const projectDateRange = `${fmtDayMonth(firstWeek.startDate)} - ${fmtDate(lastWeek.endDate)}`;
+
+  const titleRow1 = summarySheet.addRow([`BÁO CÁO TỔNG HỢP TOÀN DỰ ÁN: ${projectTag.toUpperCase()}`]);
+  const titleRow2 = summarySheet.addRow([`Thời gian: ${projectDateRange} · Tổng hợp ${reports.length} tuần báo cáo`]);
+  summarySheet.addRow([]);
+
+  titleRow1.font = { name: FONT_FAMILY, size: 14, bold: true, color: { argb: 'FF0284C7' } };
+  titleRow2.font = { name: FONT_FAMILY, size: 10, italic: true, color: { argb: 'FF64748B' } };
+
+  const headers = [
+    'Annotator',
+    'Vai trò',
+    'Tổng Cuboid',
+    'Tổng ngày công',
+    'TB / ngày công',
+    '% KPI Dự án',
+    'Số ngày Xuất sắc',
+    'Xếp loại chung',
+    'Tool QA Cảnh báo',
+    'Bay/Chìm box (Tím)',
+    'Không ôm sát (Cyan)',
+    'Tổng lỗi QC soi tay',
+  ];
+  headerRow(summarySheet, headers);
+
+  // Gom dữ liệu từng thành viên qua tất cả các tuần
+  const memberMap = new Map<string, {
+    name: string;
+    role: string;
+    totalCuboids: number;
+    totalWorkDays: number;
+    daysExcellent: number;
+    qaWarnings: number;
+    floating: number;
+    loose: number;
+  }>();
+
+  let projectTarget = 1000;
+  for (const rep of reports) {
+    if (rep.week.target) projectTarget = rep.week.target;
+    for (const m of rep.members) {
+      const existing = memberMap.get(m.name) || {
+        name: m.name,
+        role: m.role,
+        totalCuboids: 0,
+        totalWorkDays: 0,
+        daysExcellent: 0,
+        qaWarnings: 0,
+        floating: 0,
+        loose: 0,
+      };
+      existing.totalCuboids += m.total;
+      existing.totalWorkDays += m.workDays;
+      existing.daysExcellent += m.daysExcellent;
+      existing.qaWarnings += m.qaTotalWarnings;
+      if (m.manualQa) {
+        existing.floating += m.manualQa.floatingBoxCount || 0;
+        existing.loose += m.manualQa.looseBoxCount || 0;
+      }
+      memberMap.set(m.name, existing);
+    }
+  }
+
+  const aggregatedMembers = Array.from(memberMap.values()).map((m) => {
+    const avg = m.totalWorkDays > 0 ? Math.round(m.totalCuboids / m.totalWorkDays) : 0;
+    const kpiPercent = projectTarget > 0 ? Math.round((avg / projectTarget) * 100) : 0;
+    const grade: Grade = avg >= 1000 ? 'excellent' : avg >= 800 ? 'normal' : 'below';
+    return { ...m, avg, kpiPercent, grade, totalManual: m.floating + m.loose };
+  }).sort((a, b) => b.totalCuboids - a.totalCuboids);
+
+  for (const m of aggregatedMembers) {
+    const row = summarySheet.addRow([
+      m.name,
+      m.role,
+      m.totalCuboids,
+      m.totalWorkDays,
+      m.avg,
+      m.kpiPercent / 100,
+      m.daysExcellent,
+      GRADE_LABEL[m.grade],
+      m.qaWarnings,
+      m.floating,
+      m.loose,
+      m.totalManual,
+    ]);
+    row.height = 20;
+    row.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true };
+    row.getCell(6).numFmt = '0%';
+    row.getCell(6).alignment = { horizontal: 'center' };
+    const gradeCell = row.getCell(8);
+    gradeCell.alignment = { horizontal: 'center' };
+    const st = GRADE_STYLE[m.grade];
+    fillCell(gradeCell, st.bg, st.text, true);
+  }
+
+  setWidths(summarySheet, [26, 14, 16, 16, 16, 14, 16, 16, 16, 18, 18, 18]);
+  borderAll(summarySheet, 4);
+  applyArial(summarySheet);
+
+  // 2. Sheet Sản lượng từng tuần
+  const weeklySheet = workbook.addWorksheet('02. Sản lượng từng tuần');
+  const weekHeaders = ['Annotator', ...reports.map((r) => `Tuần ${r.week.weekNumber} (${fmtDayMonth(r.week.startDate)})`), 'Tổng dự án', 'TB / ngày'];
+  headerRow(weeklySheet, weekHeaders);
+
+  for (const m of aggregatedMembers) {
+    const weekValues = reports.map((r) => {
+      const match = r.members.find((rm) => rm.name === m.name);
+      return match ? match.total : 0;
+    });
+    const row = weeklySheet.addRow([m.name, ...weekValues, m.totalCuboids, m.avg]);
+    row.height = 20;
+    row.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true };
+  }
+  setWidths(weeklySheet, [26, ...reports.map(() => 16), 18, 16]);
+  borderAll(weeklySheet, 1);
+  applyArial(weeklySheet);
+
+  // 3. Sheet Issues Dự án
+  const issuesSheet = workbook.addWorksheet('03. Issues Dự án');
+  headerRow(issuesSheet, ['Tuần', 'Mã Issue', 'Người báo', 'Vấn đề', 'Phương án tạm', 'Bước tiếp theo', 'Trạng thái', 'Ưu tiên']);
+  for (const r of reports) {
+    for (const iss of r.issues) {
+      const row = issuesSheet.addRow([
+        `Tuần ${r.week.weekNumber}`,
+        iss.code,
+        iss.reporter,
+        iss.title,
+        iss.interim,
+        iss.nextStep,
+        iss.status,
+        iss.priority,
+      ]);
+      row.height = 20;
+    }
+  }
+  setWidths(issuesSheet, [12, 12, 16, 36, 26, 26, 14, 10]);
+  borderAll(issuesSheet, 1);
+  applyArial(issuesSheet);
+
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }

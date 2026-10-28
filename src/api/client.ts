@@ -114,6 +114,8 @@ export interface CreateWeekPayload {
   weekNumber: number;
   startDate: string;
   endDate: string;
+  projectTag?: string;
+  target?: number;
 }
 
 export async function apiCreateWeek(payload: CreateWeekPayload): Promise<WeekMeta> {
@@ -310,6 +312,22 @@ export async function apiExportExcel(weekId: number, sections?: string[], select
     body: JSON.stringify({ sections, selectedQaTypes }),
   });
   if (!res.ok) throw new ApiError(res.status, 'Không thể xuất file Excel');
+  return res.blob();
+}
+
+export async function apiGetProjectTags(): Promise<string[]> {
+  return apiFetch<string[]>('/api/weeks/projects/tags');
+}
+
+export async function apiExportProjectExcel(projectTag: string, selectedQaTypes?: string[]): Promise<Blob> {
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
+  const res = await fetch('/api/weeks/export/project', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ projectTag, selectedQaTypes }),
+  });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể xuất báo cáo dự án');
   return res.blob();
 }
 

@@ -43,12 +43,14 @@ export function summarizeDays(days: (DayEntry | null)[], excellentThreshold: num
   let daysExcellent = 0;
   for (const day of days) {
     if (day?.status === 'work' && day.cuboids !== null) {
+      const weight = day.weight ?? (day.note?.includes('[0.5c]') ? 0.5 : 1.0);
       total += day.cuboids;
-      workDays += 1;
-      if (day.cuboids >= excellentThreshold) daysExcellent += 1;
+      workDays += weight;
+      if (day.cuboids >= excellentThreshold * weight) daysExcellent += 1;
     }
   }
-  return { total, workDays, daysExcellent, avg: workDays ? Math.round(total / workDays) : 0 };
+  const roundedWorkDays = Math.round(workDays * 10) / 10;
+  return { total, workDays: roundedWorkDays, daysExcellent, avg: roundedWorkDays ? Math.round(total / roundedWorkDays) : 0 };
 }
 
 /** Tên gọi ngắn: tên cuối. "Đặng Trường Huy" → "Huy" */

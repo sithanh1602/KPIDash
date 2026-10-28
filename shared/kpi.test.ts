@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseCell, formatCell } from './cell';
+import { getMonday } from './format';
 import { attitudeGradeOf, buildReport, gradeOf, summarizeDays } from './kpi';
 import type { DayEntry, RawWeekData } from './types';
 
@@ -32,15 +33,36 @@ test('xếp loại attitude', () => {
 });
 
 test('đọc và hiển thị ô sản lượng', () => {
-  assert.deepEqual(parseCell('1.200'), { ok: true, entry: { status: 'work', cuboids: 1200, estimated: false } });
-  assert.deepEqual(parseCell('1620*'), { ok: true, entry: { status: 'work', cuboids: 1620, estimated: true } });
-  assert.deepEqual(parseCell('Nghỉ'), { ok: true, entry: { status: 'leave', cuboids: null, estimated: false } });
-  assert.deepEqual(parseCell('done job'), { ok: true, entry: { status: 'done', cuboids: null, estimated: false } });
+  assert.deepEqual(parseCell('1.200'), { ok: true, entry: { status: 'work', cuboids: 1200, estimated: false, weight: 1.0 } });
+  assert.deepEqual(parseCell('1620*'), { ok: true, entry: { status: 'work', cuboids: 1620, estimated: true, weight: 1.0 } });
+  assert.deepEqual(parseCell('500 (0.5)'), { ok: true, entry: { status: 'work', cuboids: 500, estimated: false, weight: 0.5 } });
+  assert.deepEqual(parseCell('Nghỉ 0.5'), { ok: true, entry: { status: 'leave', cuboids: null, estimated: false, weight: 0.5 } });
+  assert.deepEqual(parseCell('Nghỉ'), { ok: true, entry: { status: 'leave', cuboids: null, estimated: false, weight: 0.0 } });
+  assert.deepEqual(parseCell('done job'), { ok: true, entry: { status: 'done', cuboids: null, estimated: false, weight: 0.0 } });
   assert.deepEqual(parseCell(''), { ok: true, entry: null });
   assert.equal(parseCell('abc').ok, false);
   assert.equal(parseCell('-5').ok, false);
   assert.equal(formatCell(work(1620, true)), '1620*');
   assert.equal(formatCell(leave), 'Nghỉ');
+  assert.equal(formatCell({ status: 'work', cuboids: 500, estimated: false, weight: 0.5, note: '' }), '500 (0.5)');
+  assert.equal(formatCell({ status: 'leave', cuboids: null, estimated: false, weight: 0.5, note: '' }), 'Nghỉ 0.5');
+});
+
+test('tính toán ngày công nghỉ nửa ngày và giảm KPI 50%', () => {
+  // 4 ngày 1000 + 1 ngày nửa buổi 500: tổng 4500 cuboid, 4.5 ngày công, TB 1000/ngày
+  const halfWork: DayEntry = { status: 'work', cuboids: 500, estimated: false, weight: 0.5, note: '' };
+  const stats = summarizeDays([work(1000), work(1000), work(1000), work(1000), halfWork, leave], 1000);
+  assert.equal(stats.total, 4500);
+  assert.equal(stats.workDays, 4.5);
+  assert.equal(stats.avg, 1000);
+  assert.equal(stats.daysExcellent, 5); // 500 >= 1000 * 0.5
+});
+
+test('tự động căn chuẩn ngày Thứ Hai (getMonday)', () => {
+  assert.equal(getMonday('2026-10-21'), '2026-10-19'); // Thứ 4 căn về Thứ 2
+  assert.equal(getMonday('2026-10-19'), '2026-10-19'); // Thứ 2 giữ nguyên Thứ 2
+  assert.equal(getMonday('2026-10-24'), '2026-10-19'); // Thứ 7 căn về Thứ 2
+  assert.equal(getMonday('2026-10-25'), '2026-10-19'); // Chủ nhật căn về Thứ 2
 });
 
 const baseWeek: RawWeekData['week'] = {
@@ -49,6 +71,7 @@ const baseWeek: RawWeekData['week'] = {
   startDate: '2026-10-19',
   endDate: '2026-10-24',
   dataAsOf: '2026-10-24',
+  projectTag: 'VF-ADAS-2026',
   orgName: 'VINFAST',
   teamName: 'TEAM T01',
   discipline: '3D LiDAR',

@@ -32,9 +32,29 @@ export function fmtDate(iso: string): string {
   return `${fmtDayMonth(iso)}/${iso.slice(0, 4)}`;
 }
 
-/** ["T2 19/10", "T3 20/10", ...] */
+/** Đưa một ngày bất kỳ về Thứ Hai (Monday) của tuần đó */
+export function getMonday(iso: string): string {
+  try {
+    const d = new Date(`${iso}T00:00:00Z`);
+    if (isNaN(d.getTime())) return iso;
+    const day = d.getUTCDay(); // 0: CN, 1: T2, 2: T3, ..., 6: T7
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setUTCDate(d.getUTCDate() + diff);
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return iso;
+  }
+}
+
+/** ["T2 19/10", "T3 20/10", ...] căn theo lịch thực tế */
 export function dayLabels(startDate: string): string[] {
-  return Array.from({ length: DAY_COUNT }, (_, i) => `${DAY_NAMES[i]} ${fmtDayMonth(addDays(startDate, i))}`);
+  return Array.from({ length: DAY_COUNT }, (_, i) => {
+    const dateStr = addDays(startDate, i);
+    const d = new Date(`${dateStr}T00:00:00Z`);
+    const day = d.getUTCDay();
+    const dayName = day === 0 ? 'CN' : `T${day + 1}`;
+    return `${dayName} ${fmtDayMonth(dateStr)}`;
+  });
 }
 
 /** Tính số thứ tự tuần ISO từ ngày YYYY-MM-DD */
