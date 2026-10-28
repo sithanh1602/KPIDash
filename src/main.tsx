@@ -48,7 +48,7 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#0b0d12] relative overflow-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none" />
 
-      <div className="w-full max-w-md bg-[#12151d] border border-[#232836] rounded-3xl p-8 shadow-2xl relative z-10 space-y-6">
+      <div className="w-full max-w-md bg-[#12151d] rounded-3xl p-8 shadow-2xl relative z-10 space-y-6">
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-1">
             <RubikLogo size="lg" showText={false} />
@@ -60,7 +60,7 @@ function LoginPage() {
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2">
             <AlertCircle size={15} />
             <span>{error}</span>
           </div>
@@ -74,27 +74,25 @@ function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="lead@anno.local"
-              className="w-full bg-[#171b26] border border-[#262c3d] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-[#171b26] border border-[#262c3d] rounded-none px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Mật khẩu Leader</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Mật khẩu</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="w-full bg-[#171b26] border border-[#262c3d] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-[#171b26] border border-[#262c3d] rounded-none px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2 pt-3"
+            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm rounded-none transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2 pt-3"
           >
             {loading ? (
               'Đang đăng nhập...'
