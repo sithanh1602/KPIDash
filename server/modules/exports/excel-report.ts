@@ -104,7 +104,10 @@ function borderAll(sheet: ExcelJS.Worksheet, fromRow: number) {
   }
 }
 
-const builders: Record<ReportSectionKey, (wb: ExcelJS.Workbook, report: WeekReport) => void> = {
+const builders: Record<
+  ReportSectionKey,
+  (wb: ExcelJS.Workbook, report: WeekReport, selectedQaTypes?: string[]) => void
+> = {
   overview(wb, report) {
     const sheet = wb.addWorksheet('01. Tổng quan');
     titleRows(sheet, report, 'BÁO CÁO TỔNG QUAN HIỆU SUẤT & CHẤT LƯỢNG', 4);
@@ -263,20 +266,50 @@ const builders: Record<ReportSectionKey, (wb: ExcelJS.Workbook, report: WeekRepo
     applyArial(sheet);
   },
 
-  quality(wb, report) {
+  quality(wb, report, selectedQaTypes?: string[]) {
     const sheet = wb.addWorksheet('04. Chất lượng QA');
-    const headers = ['Annotator', 'Mã Job', 'Tổng Cuboid', '% Cảnh báo', ...QA_TYPES.map((t) => t.short), 'Rủi ro Cao', 'Rủi ro TB', 'Rủi ro Thấp', 'Người QC'];
+    const activeKeys = new Set(
+      selectedQaTypes && selectedQaTypes.length > 0 ? selectedQaTypes : QA_TYPES.map((t) => t.key),
+    );
+    const isFiltered = activeKeys.size < QA_TYPES.length;
+
+    const headers = [
+      'Annotator',
+      'Mã Job',
+      'Tổng Cuboid',
+      isFiltered ? '% Cảnh báo (Đã lọc)' : '% Cảnh báo',
+      ...QA_TYPES.map((t) => (activeKeys.has(t.key) ? t.short : `${t.short} (bỏ qua)`)),
+      'Rủi ro Cao',
+      'Rủi ro TB',
+      'Rủi ro Thấp',
+      'Người QC',
+    ];
     titleRows(sheet, report, 'THỐNG KÊ CẢNH BÁO TOOL QA THEO THÀNH VIÊN', headers.length);
+
+    if (isFiltered) {
+      const activeLabels = QA_TYPES.filter((t) => activeKeys.has(t.key)).map((t) => t.short).join(', ');
+      const ignoredLabels = QA_TYPES.filter((t) => !activeKeys.has(t.key)).map((t) => `${t.short} (${t.label})`).join(', ');
+      const noteRow = sheet.addRow([`* Lưu ý: Tỷ lệ % cảnh báo được tính theo các lỗi đã chọn: [${activeLabels}]. Đã bỏ qua: [${ignoredLabels}].`]);
+      sheet.mergeCells(noteRow.number, 1, noteRow.number, headers.length);
+      noteRow.getCell(1).font = { name: FONT_FAMILY, size: 9, italic: true, color: { argb: 'FFD97706' } };
+    }
+
     headerRow(sheet, headers);
 
     for (const m of report.members) {
       const q = m.qa;
       if (!q) continue;
+
+      const activeWarnings = QA_TYPES.reduce((acc, t) => {
+        return activeKeys.has(t.key) ? acc + (Number(q[t.key as keyof typeof q]) || 0) : acc;
+      }, 0);
+      const dynamicWarningPercent = q.cuboids > 0 ? activeWarnings / q.cuboids : (q.warningPercent / 100);
+
       const row = sheet.addRow([
         m.name,
         q.jobCode,
         q.cuboids,
-        q.warningPercent / 100,
+        dynamicWarningPercent,
         q.s,
         q.k,
         q.z,
@@ -293,6 +326,14 @@ const builders: Record<ReportSectionKey, (wb: ExcelJS.Workbook, report: WeekRepo
       row.getCell(4).numFmt = '0.0%';
       row.getCell(4).alignment = { horizontal: 'center' };
       row.getCell(4).font = { name: FONT_FAMILY, size: 10, bold: true };
+
+      // Làm mờ và gạch ngang các loại lỗi bị bỏ qua
+      QA_TYPES.forEach((t, idx) => {
+        if (!activeKeys.has(t.key)) {
+          const cell = row.getCell(5 + idx);
+          cell.font = { name: FONT_FAMILY, size: 10, strike: true, color: { argb: 'FF94A3B8' } };
+        }
+      });
 
       // Tô cảnh báo rủi ro cao nếu có
       if (q.riskHigh > 0) {
@@ -399,7 +440,82 @@ const builders: Record<ReportSectionKey, (wb: ExcelJS.Workbook, report: WeekRepo
     summaryRow.getCell(7).numFmt = '0.0%';
     summaryRow.getCell(7).alignment = { horizontal: 'center' };
 
-    setWidths(sheet, [26, 14, 18, 26, 32, 14, 14, 22, 50]);
+    // Bảng tổng hợp lỗi thường gặp (Manual QC)
+    sheet.addRow([]);
+    const subH = headerRow(sheet, ['BẢNG TỔNG HỢP LỖI THƯỜNG GẶP (MANUAL QC DỰA TRÊN DỮ LIỆU ĐÃ ĐIỀN)']);
+    sheet.mergeCells(subH.number, 1, subH.number, 9);
+    subH.getCell(1).alignment = { horizontal: 'left' };
+
+    headerRow(sheet, [
+      'Nhóm lỗi thường gặp',
+      'Mã màu quy ước',
+      'Số lượng lỗi',
+      'Tỷ lệ / Tổng lỗi',
+      'Tỷ lệ / Cuboid soi',
+      'Số annotator gặp',
+      'Người gặp nhiều nhất',
+      'Hướng dẫn khắc phục chuẩn',
+      'Ghi chú nghiệp vụ',
+    ]);
+
+    const totalErrors = report.summary.manualTotalErrors || 0;
+    const totalChecked = report.summary.manualTotalChecked || 1;
+    const totalFloating = report.summary.manualTotalFloating || 0;
+    const totalLoose = report.summary.manualTotalLoose || 0;
+
+    const floatingMembers = report.members.filter((m) => (m.manualQa?.floatingBoxCount || 0) > 0);
+    const looseMembers = report.members.filter((m) => (m.manualQa?.looseBoxCount || 0) > 0);
+
+    const topFloating = [...floatingMembers].sort(
+      (a, b) => (b.manualQa?.floatingBoxCount || 0) - (a.manualQa?.floatingBoxCount || 0),
+    )[0];
+    const topLoose = [...looseMembers].sort(
+      (a, b) => (b.manualQa?.looseBoxCount || 0) - (a.manualQa?.looseBoxCount || 0),
+    )[0];
+
+    const rowFloat = sheet.addRow([
+      'Lỗi bay box / Chìm box',
+      '#A855F7 (Màu tím)',
+      totalFloating,
+      totalErrors > 0 ? totalFloating / totalErrors : 0,
+      totalChecked > 0 ? totalFloating / totalChecked : 0,
+      `${floatingMembers.length} / ${report.members.length}`,
+      topFloating ? `${topFloating.name} (${topFloating.manualQa?.floatingBoxCount} lỗi)` : '–',
+      'Căn chỉnh cao độ mặt sàn Lidar; soi kỹ chùm tia tiếp đất bánh xe hoặc chân người, tránh hạ box quá sâu.',
+      'Sai lệch cao độ Z',
+    ]);
+    rowFloat.height = 24;
+    rowFloat.alignment = { wrapText: true, vertical: 'middle' };
+    rowFloat.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: 'FF7C3AED' } };
+    fillCell(rowFloat.getCell(2), 'FFF3E8FF', 'FF6B21A8', true);
+    rowFloat.getCell(3).alignment = { horizontal: 'right' };
+    rowFloat.getCell(4).numFmt = '0.0%';
+    rowFloat.getCell(4).alignment = { horizontal: 'center' };
+    rowFloat.getCell(5).numFmt = '0.0%';
+    rowFloat.getCell(5).alignment = { horizontal: 'center' };
+
+    const rowLoose = sheet.addRow([
+      'Lỗi box không ôm sát pointcloud',
+      '#06B6D4 (Màu cyan)',
+      totalLoose,
+      totalErrors > 0 ? totalLoose / totalErrors : 0,
+      totalChecked > 0 ? totalLoose / totalChecked : 0,
+      `${looseMembers.length} / ${report.members.length}`,
+      topLoose ? `${topLoose.name} (${topLoose.manualQa?.looseBoxCount} lỗi)` : '–',
+      'Thu nhỏ viền 3D box ôm khít chùm điểm ngoài cùng; không để dư khoảng trống ở đuôi/mui xe và hai bên sườn.',
+      'Box lỏng / dư khoảng trống',
+    ]);
+    rowLoose.height = 24;
+    rowLoose.alignment = { wrapText: true, vertical: 'middle' };
+    rowLoose.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: 'FF0891B2' } };
+    fillCell(rowLoose.getCell(2), 'FFE0F2FE', 'FF0369A1', true);
+    rowLoose.getCell(3).alignment = { horizontal: 'right' };
+    rowLoose.getCell(4).numFmt = '0.0%';
+    rowLoose.getCell(4).alignment = { horizontal: 'center' };
+    rowLoose.getCell(5).numFmt = '0.0%';
+    rowLoose.getCell(5).alignment = { horizontal: 'center' };
+
+    setWidths(sheet, [26, 18, 16, 16, 16, 16, 24, 45, 30]);
     borderAll(sheet, 5);
     applyArial(sheet);
   },
@@ -491,11 +607,19 @@ const builders: Record<ReportSectionKey, (wb: ExcelJS.Workbook, report: WeekRepo
   },
 };
 
-export async function buildReportXlsx(report: WeekReport, sections: ReportSectionKey[]): Promise<Buffer> {
+export async function buildReportXlsx(
+  report: WeekReport,
+  sections: ReportSectionKey[],
+  selectedQaTypes?: string[],
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'ADAS KPI';
   for (const key of sections) {
-    if (builders[key]) builders[key](workbook, report);
+    if (key === 'quality') {
+      builders.quality(workbook, report, selectedQaTypes);
+    } else if (builders[key]) {
+      builders[key](workbook, report);
+    }
   }
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }

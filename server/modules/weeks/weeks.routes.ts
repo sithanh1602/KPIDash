@@ -253,6 +253,7 @@ weeksRouter.post('/:id/sheets/:sheetKey/import', async (req, res) => {
 
 const exportExcelSchema = z.object({
   sections: z.array(z.string()).optional(),
+  selectedQaTypes: z.array(z.string()).optional(),
 });
 
 weeksRouter.post('/:id/export/excel', async (req, res) => {
@@ -269,7 +270,7 @@ weeksRouter.post('/:id/export/excel', async (req, res) => {
     sections = REPORT_SECTIONS.map((s) => s.key);
   }
 
-  const buffer = await buildReportXlsx(report, sections);
+  const buffer = await buildReportXlsx(report, sections, body.selectedQaTypes);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="bao-cao-kpi-${report.week.startDate}.xlsx"`);
   res.send(buffer);

@@ -105,6 +105,25 @@ export function WebExcelGrid() {
     currentDef.columns.forEach((c) => {
       emptyValues[c.key] = '';
     });
+
+    // Tự động sinh ID và giá trị mặc định cho tab Issue (ISS-01, ISS-02...)
+    if (selectedSheetKey === 'issues') {
+      let maxNum = 0;
+      rows.forEach((r) => {
+        const code = r.values?.code || '';
+        const match = code.match(/ISS[^\d]*(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      const nextId = `ISS-${String(maxNum + 1).padStart(2, '0')}`;
+      emptyValues.code = nextId;
+      emptyValues.reporter = user?.name || '';
+      emptyValues.status = 'Chờ chốt';
+      emptyValues.priority = 'TB';
+    }
+
     setRows((prev) => [...prev, { memberId: null, values: emptyValues }]);
   };
 
@@ -381,6 +400,54 @@ export function WebExcelGrid() {
                               onChange={(e) => handleCellChange(rowIndex, col.key, e.target.value)}
                               className="w-full bg-[#171b26] border border-[#282f42] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500 resize-y leading-tight"
                             />
+                          </td>
+                        );
+                      }
+
+                      // Ô nhập sản lượng ngày (cuboid: 400, 500, 600, 1000, 1200...) với menu chọn nhanh
+                      if (selectedSheetKey === 'production' && col.type === 'cell') {
+                        const CUBOID_PRESETS = ['400', '500', '600', '1000', '1200', 'Nghỉ', 'Done job'];
+                        const datalistId = `cuboid-presets-${col.key}-${rowIndex}`;
+                        return (
+                          <td key={col.key} className="py-1 px-1">
+                            <div className="relative flex items-center group">
+                              <input
+                                aria-label={col.header}
+                                list={datalistId}
+                                type="text"
+                                value={val}
+                                onChange={(e) => handleCellChange(rowIndex, col.key, e.target.value)}
+                                className="w-full bg-[#171b26] border border-[#282f42] rounded-lg pl-2 pr-6 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500 font-mono"
+                                placeholder="–"
+                              />
+                              <datalist id={datalistId}>
+                                {CUBOID_PRESETS.map((p) => (
+                                  <option key={p} value={p} />
+                                ))}
+                              </datalist>
+                              <select
+                                aria-label={`${col.header} chọn nhanh`}
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) handleCellChange(rowIndex, col.key, e.target.value);
+                                }}
+                                className="absolute right-0.5 top-0 bottom-0 w-6 opacity-40 group-hover:opacity-100 hover:opacity-100 bg-transparent text-slate-400 hover:text-emerald-400 cursor-pointer text-[11px] outline-none text-center font-bold"
+                                title="Chọn nhanh số cuboid: 400, 500, 600, 1000, 1200..."
+                              >
+                                <option value="" disabled hidden>▾</option>
+                                <optgroup label="Sản lượng chuẩn" className="bg-[#171b26] text-slate-300 font-sans">
+                                  <option value="400" className="bg-[#171b26] text-white font-mono">400 cuboid</option>
+                                  <option value="500" className="bg-[#171b26] text-white font-mono">500 cuboid</option>
+                                  <option value="600" className="bg-[#171b26] text-white font-mono">600 cuboid</option>
+                                  <option value="1000" className="bg-[#171b26] text-white font-mono">1000 cuboid</option>
+                                  <option value="1200" className="bg-[#171b26] text-white font-mono">1200 cuboid</option>
+                                </optgroup>
+                                <optgroup label="Trạng thái khác" className="bg-[#171b26] text-slate-300 font-sans">
+                                  <option value="Nghỉ" className="bg-[#171b26] text-amber-400 font-sans">Nghỉ</option>
+                                  <option value="Done job" className="bg-[#171b26] text-blue-400 font-sans">Done job</option>
+                                </optgroup>
+                              </select>
+                            </div>
                           </td>
                         );
                       }

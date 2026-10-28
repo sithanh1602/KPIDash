@@ -157,3 +157,47 @@ test('tính toán số liệu QA manual: lỗi bay box/chìm box và box không 
   assert.equal(report.summary.manualTotalErrors, 14);
   assert.equal(report.summary.manualErrorRate, 0.93);
 });
+
+test('tính toán cảnh báo Tool QA khi lọc/bỏ chọn loại lỗi', () => {
+  const qa = {
+    jobCode: '1209',
+    qcName: 'QC',
+    cuboids: 1000,
+    warningPercent: 18.0,
+    s: 20,
+    k: 100,
+    z: 10,
+    h: 30,
+    o: 15,
+    d: 5,
+    riskHigh: 2,
+    riskMid: 3,
+    riskLow: 1,
+  };
+
+  // Khi chọn đủ 6 loại: tổng = 20+100+10+30+15+5 = 180, tỷ lệ 18.0%
+  const allTypes = ['s', 'k', 'z', 'h', 'o', 'd'];
+  const totalAll = allTypes.reduce((acc, t) => acc + (qa[t as keyof typeof qa] as number), 0);
+  assert.equal(totalAll, 180);
+  assert.equal(Number(((totalAll / qa.cuboids) * 100).toFixed(1)), 18.0);
+
+  // Khi bỏ chọn K (k=100) và D (d=5): tổng = 20 + 10 + 30 + 15 = 75, tỷ lệ 7.5%
+  const filteredTypes = ['s', 'z', 'h', 'o'];
+  const totalFiltered = filteredTypes.reduce((acc, t) => acc + (qa[t as keyof typeof qa] as number), 0);
+  assert.equal(totalFiltered, 75);
+  assert.equal(Number(((totalFiltered / qa.cuboids) * 100).toFixed(1)), 7.5);
+});
+
+test('tự động tạo ID tăng dần cho tab Issue (ISS-01, ISS-02...)', () => {
+  const existingCodes = ['ISS-01', 'ISS-02', 'ISS-05'];
+  let maxNum = 0;
+  existingCodes.forEach((code) => {
+    const match = code.match(/ISS[^\d]*(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  });
+  const nextId = `ISS-${String(maxNum + 1).padStart(2, '0')}`;
+  assert.equal(nextId, 'ISS-06');
+});

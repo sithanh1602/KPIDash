@@ -301,13 +301,13 @@ export async function apiChangeMyPassword(data: {
   });
 }
 
-export async function apiExportExcel(weekId: number, sections?: string[]): Promise<Blob> {
+export async function apiExportExcel(weekId: number, sections?: string[], selectedQaTypes?: string[]): Promise<Blob> {
   const headers = new Headers({ 'Content-Type': 'application/json' });
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
   const res = await fetch(`/api/weeks/${weekId}/export/excel`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ sections }),
+    body: JSON.stringify({ sections, selectedQaTypes }),
   });
   if (!res.ok) throw new ApiError(res.status, 'Không thể xuất file Excel');
   return res.blob();

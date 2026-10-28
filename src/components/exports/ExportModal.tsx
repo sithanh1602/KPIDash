@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { apiExportExcel } from '../../api/client';
+import { useWeek } from '../../context/WeekContext';
 import { Modal } from '../common/Modal';
 import { REPORT_SECTIONS, type ReportSectionKey } from '@shared/report-sections';
 import { showToast } from '../../utils/toast';
@@ -14,6 +15,7 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ isOpen, onClose, weekId, startDate, onPrintPdf }: ExportModalProps) {
+  const { selectedQaTypes } = useWeek();
   const [format, setFormat] = useState<'excel' | 'pdf'>('excel');
   const [selected, setSelected] = useState<Record<ReportSectionKey, boolean>>({
     overview: true,
@@ -54,7 +56,7 @@ export function ExportModal({ isOpen, onClose, weekId, startDate, onPrintPdf }: 
     setExporting(true);
     setError(null);
     try {
-      const blob = await apiExportExcel(weekId, chosen);
+      const blob = await apiExportExcel(weekId, chosen, selectedQaTypes);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

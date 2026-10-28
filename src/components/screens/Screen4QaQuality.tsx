@@ -3,22 +3,49 @@ import { useAuth } from '../../context/AuthContext';
 import { useWeek } from '../../context/WeekContext';
 import { fmtDecimal, fmtInt } from '@shared/format';
 import { QA_TYPES } from '@shared/constants';
-import { Sparkles, Upload } from 'lucide-react';
+import { CheckSquare, Filter, Sparkles, Square, Upload } from 'lucide-react';
 import { ToolQaImportModal } from '../sheets/ToolQaImportModal';
 
 export function Screen4QaQuality() {
   const { user } = useAuth();
-  const { report, refreshReport } = useWeek();
+  const { report, refreshReport, selectedQaTypes, setSelectedQaTypes } = useWeek();
   const [toolQaModalOpen, setToolQaModalOpen] = useState(false);
   if (!report) return null;
 
   const canImportToolQa = user?.role === 'leader' || user?.role === 'qc';
-
   const { members, tracks } = report;
 
-  // Sắp xếp danh sách cho biểu đồ cột chồng theo tổng cảnh báo giảm dần
-  const sortedByWarnings = [...members].sort((a, b) => b.qaTotalWarnings - a.qaTotalWarnings);
-  const maxWarnings = sortedByWarnings[0]?.qaTotalWarnings || 1;
+  const toggleQaType = (key: string) => {
+    if (selectedQaTypes.includes(key)) {
+      if (selectedQaTypes.length === 1) return; // Giữ ít nhất 1 loại
+      setSelectedQaTypes(selectedQaTypes.filter((k) => k !== key));
+    } else {
+      setSelectedQaTypes([...selectedQaTypes, key]);
+    }
+  };
+
+  const selectAllQaTypes = () => {
+    setSelectedQaTypes(QA_TYPES.map((t) => t.key));
+  };
+
+  const isFiltered = selectedQaTypes.length < QA_TYPES.length;
+
+  // Tính toán số cảnh báo và % cảnh báo theo các loại lỗi đang được chọn
+  const getMemberDynamicQa = (m: (typeof members)[0]) => {
+    const q = m.qa;
+    if (!q) return { total: 0, percent: 0 };
+    const total = QA_TYPES.reduce((acc, t) => {
+      return selectedQaTypes.includes(t.key) ? acc + (Number(q[t.key as keyof typeof q]) || 0) : acc;
+    }, 0);
+    const percent = q.cuboids > 0 ? Number(((total / q.cuboids) * 100).toFixed(1)) : 0;
+    return { total, percent };
+  };
+
+  // Sắp xếp danh sách cho biểu đồ cột chồng theo tổng cảnh báo đã lọc giảm dần
+  const sortedByWarnings = [...members]
+    .map((m) => ({ ...m, dynamicQa: getMemberDynamicQa(m) }))
+    .sort((a, b) => b.dynamicQa.total - a.dynamicQa.total);
+  const maxWarnings = sortedByWarnings[0]?.dynamicQa.total || 1;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -39,9 +66,63 @@ export function Screen4QaQuality() {
             </button>
           )}
         </div>
-        <p className="text-xs text-slate-400 mb-5">
-          Tool datamuro_qa trên export 7 job. Cảnh báo là nơi QC cần nhìn, chưa phải lỗi. S scale · K kích thước · Z độ cao · H hướng · O chồng lấn · D quá xa.
+        <p className="text-xs text-slate-400 mb-4">
+          Tool datamuro_qa trên export 7 job. Cảnh báo là nơi QC cần nhìn, chưa phải lỗi. Tích chọn các loại lỗi bên dưới để tính vào tổng cảnh báo và tỷ lệ %.
         </p>
+
+        {/* Thanh công cụ Checkbox chọn loại cảnh báo tính vào KPI */}
+        <div className="bg-[#161a24] border border-[#232836] rounded-xl p-3 mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mr-1 flex items-center gap-1.5">
+              <Filter size={13} className="text-emerald-400" />
+              Chọn loại lỗi tính vào KPI:
+            </span>
+            {QA_TYPES.map((t) => {
+              const isChecked = selectedQaTypes.includes(t.key);
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => toggleQaType(t.key)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all select-none ${
+                    isChecked
+                      ? 'bg-slate-800/90 border-slate-600 text-white shadow-sm'
+                      : 'bg-transparent border-[#232836] text-slate-500 hover:text-slate-300'
+                  }`}
+                  title={`${isChecked ? 'Đang tính' : 'Đang bỏ qua'} lỗi ${t.short} (${t.label})`}
+                >
+                  <span
+                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
+                      isChecked
+                        ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-black'
+                        : 'border-slate-600 bg-slate-900/50'
+                    }`}
+                  >
+                    {isChecked ? '✓' : ''}
+                  </span>
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
+                  <span>{t.short} ({t.label})</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            {isFiltered && (
+              <span className="text-amber-400 font-medium text-[11px] bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+                Đang tính {selectedQaTypes.length}/6 loại
+              </span>
+            )}
+            {isFiltered && (
+              <button
+                type="button"
+                onClick={selectAllQaTypes}
+                className="text-emerald-400 hover:text-emerald-300 text-[11px] font-semibold underline ml-1"
+              >
+                Chọn tất cả (6/6)
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
@@ -50,13 +131,43 @@ export function Screen4QaQuality() {
                 <th className="py-2.5 px-3">Annotator</th>
                 <th className="py-2.5 px-2 text-center">Job</th>
                 <th className="py-2.5 px-2 text-right">Cuboid</th>
-                <th className="py-2.5 px-2 text-right">% Cảnh báo</th>
-                <th className="py-2.5 px-2 text-right text-purple-300">S</th>
-                <th className="py-2.5 px-2 text-right text-blue-300">K</th>
-                <th className="py-2.5 px-2 text-right text-slate-400">Z</th>
-                <th className="py-2.5 px-2 text-right text-rose-300">H</th>
-                <th className="py-2.5 px-2 text-right text-amber-300">O</th>
-                <th className="py-2.5 px-2 text-right text-emerald-300">D</th>
+                <th className="py-2.5 px-2 text-right">
+                  <div className="flex flex-col items-end">
+                    <span>% Cảnh báo</span>
+                    {isFiltered && <span className="text-[9px] text-amber-400 font-normal lowercase">(đã lọc)</span>}
+                  </div>
+                </th>
+                {QA_TYPES.map((t) => {
+                  const isChecked = selectedQaTypes.includes(t.key);
+                  return (
+                    <th key={t.key} className="py-2.5 px-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => toggleQaType(t.key)}
+                        className="inline-flex items-center justify-end gap-1 cursor-pointer group"
+                        title={`Bấm để ${isChecked ? 'bỏ' : 'tính'} lỗi ${t.short} (${t.label})`}
+                      >
+                        <span
+                          className={`w-3 h-3 rounded flex items-center justify-center border text-[8px] ${
+                            isChecked
+                              ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-bold'
+                              : 'border-slate-600 bg-slate-900'
+                          }`}
+                        >
+                          {isChecked ? '✓' : ''}
+                        </span>
+                        <span
+                          className={`font-bold transition-colors ${
+                            isChecked ? 'text-white' : 'text-slate-600 line-through'
+                          }`}
+                          style={isChecked ? { color: t.color } : {}}
+                        >
+                          {t.short}
+                        </span>
+                      </button>
+                    </th>
+                  );
+                })}
                 <th className="py-2.5 px-2 text-center font-bold text-amber-400">Cao</th>
                 <th className="py-2.5 px-2 text-center">TB</th>
                 <th className="py-2.5 px-2 text-center">Thấp</th>
@@ -67,6 +178,7 @@ export function Screen4QaQuality() {
               {members.map((m) => {
                 const q = m.qa;
                 if (!q) return null;
+                const dynamic = getMemberDynamicQa(m);
 
                 const highColor =
                   q.riskHigh <= 10
@@ -80,15 +192,28 @@ export function Screen4QaQuality() {
                     <td className="py-2.5 px-3 font-bold text-white whitespace-nowrap">{m.name}</td>
                     <td className="py-2.5 px-2 text-center font-mono text-slate-400">{q.jobCode}</td>
                     <td className="py-2.5 px-2 text-right font-mono text-slate-300">{fmtInt(q.cuboids)}</td>
-                    <td className="py-2.5 px-2 text-right font-mono font-bold text-slate-200">
-                      {fmtDecimal(q.warningPercent)}%
+                    <td className="py-2.5 px-2 text-right font-mono font-bold whitespace-nowrap">
+                      <span className={isFiltered ? 'text-amber-300' : 'text-slate-200'}>
+                        {fmtDecimal(dynamic.percent)}%
+                      </span>
                     </td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-300">{q.s}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-300">{q.k}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-400">{q.z}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-300">{q.h}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-300">{q.o}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-300">{q.d}</td>
+                    {QA_TYPES.map((t) => {
+                      const isChecked = selectedQaTypes.includes(t.key);
+                      const val = q[t.key as keyof typeof q] as number;
+                      return (
+                        <td
+                          key={t.key}
+                          className={`py-2.5 px-2 text-right font-mono transition-all ${
+                            isChecked
+                              ? 'text-slate-300'
+                              : 'text-slate-600 line-through opacity-40'
+                          }`}
+                          title={isChecked ? `${t.label}: ${val}` : `${t.label} đã bỏ chọn (không tính)`}
+                        >
+                          {val}
+                        </td>
+                      );
+                    })}
                     <td className="py-2.5 px-2 text-center whitespace-nowrap">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border ${highColor}`}>
                         • {q.riskHigh}
@@ -107,21 +232,39 @@ export function Screen4QaQuality() {
 
       {/* Cảnh báo theo loại · Mỗi annotator (Biểu đồ cột chồng) */}
       <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md">
-        <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-1">
-          CẢNH BÁO THEO LOẠI · MỖI ANNOTATOR
-        </h3>
+        <div className="flex items-center justify-between gap-4 mb-1 flex-wrap">
+          <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400">
+            CẢNH BÁO THEO LOẠI · MỖI ANNOTATOR {isFiltered && `(TÍNH ${selectedQaTypes.length}/6 LOẠI LỖI)`}
+          </h3>
+          {isFiltered && (
+            <span className="text-xs text-amber-400 font-mono">
+              Tổng đã loại bỏ: {QA_TYPES.filter((t) => !selectedQaTypes.includes(t.key)).map((t) => t.short).join(', ')}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-400 mb-4">
-          K chủ yếu do ngưỡng two-wheel 1,5 m và pedestrian 0,65 m đang chờ dự án xác nhận.
+          Biểu đồ cột chồng tự động cập nhật độ dài và tổng số theo các loại lỗi đang được tích chọn.
         </p>
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 mb-6 text-xs text-slate-400 pb-3 border-b border-[#232836]">
-          {QA_TYPES.map((t) => (
-            <span key={t.key} className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: t.color }} />
-              <span className="font-bold text-slate-300">{t.short}</span> - {t.label}
-            </span>
-          ))}
+          {QA_TYPES.map((t) => {
+            const isChecked = selectedQaTypes.includes(t.key);
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => toggleQaType(t.key)}
+                className={`flex items-center gap-1.5 font-medium transition-all ${
+                  isChecked ? 'opacity-100 cursor-pointer' : 'opacity-40 line-through cursor-pointer'
+                }`}
+                title={`Nhấn để ${isChecked ? 'bỏ chọn' : 'chọn'} ${t.label}`}
+              >
+                <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: t.color }} />
+                <span className="font-bold text-slate-300">{t.short}</span> - {t.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Stacked Bars */}
@@ -129,17 +272,17 @@ export function Screen4QaQuality() {
           {sortedByWarnings.map((m) => {
             const q = m.qa;
             if (!q) return null;
-            const total = m.qaTotalWarnings;
+            const total = m.dynamicQa.total;
             const totalWidth = Math.min(100, (total / (maxWarnings * 1.1)) * 100);
 
             return (
               <div key={m.id} className="flex items-center text-xs">
                 <div className="w-44 shrink-0 font-medium text-slate-300 truncate pr-3">{m.name}</div>
                 <div className="flex-1 bg-slate-800/30 h-6 rounded-lg overflow-hidden flex" style={{ maxWidth: `${totalWidth}%` }}>
-                  {QA_TYPES.map((t) => {
+                  {QA_TYPES.filter((t) => selectedQaTypes.includes(t.key)).map((t) => {
                     const count = q[t.key as keyof typeof q] as number;
                     if (!count) return null;
-                    const w = (count / total) * 100;
+                    const w = total > 0 ? (count / total) * 100 : 0;
                     return (
                       <div
                         key={t.key}
@@ -150,7 +293,10 @@ export function Screen4QaQuality() {
                     );
                   })}
                 </div>
-                <div className="w-20 pl-3 shrink-0 font-mono font-bold text-slate-200">{fmtInt(total)}</div>
+                <div className="w-20 pl-3 shrink-0 font-mono font-bold text-slate-200">
+                  {fmtInt(total)}
+                  {isFiltered && <span className="text-[10px] text-amber-400/80 font-normal ml-1">*</span>}
+                </div>
               </div>
             );
           })}

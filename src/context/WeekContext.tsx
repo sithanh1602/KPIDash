@@ -28,7 +28,11 @@ interface WeekContextType {
   setActiveTab: (tab: AppTab) => void;
   selectedSheetKey: SheetKey;
   setSelectedSheetKey: (key: SheetKey) => void;
+  selectedQaTypes: string[];
+  setSelectedQaTypes: (types: string[]) => void;
 }
+
+const DEFAULT_QA_TYPES = ['s', 'k', 'z', 'h', 'o', 'd'];
 
 const WeekContext = createContext<WeekContextType | null>(null);
 
@@ -41,6 +45,27 @@ export function WeekProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('overview');
   const [selectedSheetKey, setSelectedSheetKey] = useState<SheetKey>('production');
+  const [selectedQaTypes, setSelectedQaTypesState] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('kpi_tool_qa_selected_types');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return DEFAULT_QA_TYPES;
+  });
+
+  const setSelectedQaTypes = (types: string[]) => {
+    setSelectedQaTypesState(types);
+    try {
+      localStorage.setItem('kpi_tool_qa_selected_types', JSON.stringify(types));
+    } catch {
+      // ignore
+    }
+  };
 
   const refreshWeeks = async () => {
     if (!user) return;
@@ -100,6 +125,8 @@ export function WeekProvider({ children }: { children: React.ReactNode }) {
         setActiveTab,
         selectedSheetKey,
         setSelectedSheetKey,
+        selectedQaTypes,
+        setSelectedQaTypes,
       }}
     >
       {children}

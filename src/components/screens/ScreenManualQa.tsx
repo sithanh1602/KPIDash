@@ -37,6 +37,35 @@ export function ScreenManualQa() {
 
   const maxErrors = Math.max(...membersWithManual.map((m) => m.manualQa?.totalErrors || 0), 1);
 
+  // Thống kê lỗi thường gặp dựa trên dữ liệu các QC đã điền
+  const totalChecked = summary.manualTotalChecked || 1;
+  const totalErrors = summary.manualTotalErrors || 0;
+  const totalFloating = summary.manualTotalFloating || 0;
+  const totalLoose = summary.manualTotalLoose || 0;
+
+  const floatingMembers = membersWithManual.filter((m) => (m.manualQa?.floatingBoxCount || 0) > 0);
+  const looseMembers = membersWithManual.filter((m) => (m.manualQa?.looseBoxCount || 0) > 0);
+
+  const topFloatingMember = [...floatingMembers].sort(
+    (a, b) => (b.manualQa?.floatingBoxCount || 0) - (a.manualQa?.floatingBoxCount || 0),
+  )[0];
+
+  const topLooseMember = [...looseMembers].sort(
+    (a, b) => (b.manualQa?.looseBoxCount || 0) - (a.manualQa?.looseBoxCount || 0),
+  )[0];
+
+  const defectNotes = membersWithManual
+    .filter((m) => m.manualQa?.note && m.manualQa.note.trim() !== '' && m.manualQa.note.trim() !== '–')
+    .map((m) => ({
+      member: m.name,
+      jobCode: m.manualQa!.jobCode,
+      qcName: m.manualQa!.qcName,
+      floating: m.manualQa!.floatingBoxCount,
+      loose: m.manualQa!.looseBoxCount,
+      total: m.manualQa!.totalErrors,
+      note: m.manualQa!.note,
+    }));
+
   const handleDownloadTemplate = async () => {
     if (!currentWeekId) return;
     setDownloading(true);
@@ -259,6 +288,168 @@ export function ScreenManualQa() {
               );
             })}
           </div>
+        </section>
+      )}
+
+      {/* Bảng lỗi thường gặp dựa trên dữ liệu các QC đã điền */}
+      {membersWithManual.length > 0 && (
+        <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md">
+          <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-purple-400 bg-purple-950/60 border border-purple-800/40 px-2 py-0.5 rounded">
+                QC REVIEW
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">
+                Bảng tổng hợp lỗi thường gặp (dựa trên dữ liệu QC đã điền)
+              </h3>
+            </div>
+            <span className="text-xs text-slate-400">
+              Tổng hợp từ {membersWithManual.length} bài chấm thủ công
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mb-5">
+            Thống kê tần suất và phân loại các lỗi soi tay lặp lại nhiều nhất giúp annotator và Team Lead nắm bắt điểm nghẽn kỹ thuật cần khắc phục.
+          </p>
+
+          {/* 1. Bảng phân loại lỗi trọng điểm */}
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#232836] text-[11px] text-slate-400 uppercase font-semibold">
+                  <th className="py-2.5 px-3">Nhóm lỗi</th>
+                  <th className="py-2.5 px-2 text-center">Mã màu</th>
+                  <th className="py-2.5 px-2 text-right">Số lượng lỗi</th>
+                  <th className="py-2.5 px-2 text-right">% Trong tổng lỗi</th>
+                  <th className="py-2.5 px-2 text-right">Tỷ lệ / Cuboid</th>
+                  <th className="py-2.5 px-2 text-center">Số người gặp</th>
+                  <th className="py-2.5 px-3">Người gặp nhiều nhất</th>
+                  <th className="py-2.5 px-3">Hướng dẫn khắc phục chuẩn</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1e2330]">
+                {/* Row 1: Bay box / Chìm box */}
+                <tr className="hover:bg-[#161a24] transition-colors">
+                  <td className="py-3 px-3 font-bold text-purple-300">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-purple-500 shadow-sm shadow-purple-500/50" />
+                      <span>Lỗi bay box / Chìm box</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-2 text-center">
+                    <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      #A855F7 (Tím)
+                    </span>
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono font-bold text-purple-200">
+                    {fmtInt(totalFloating)}
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono font-bold text-white">
+                    {totalErrors > 0 ? fmtDecimal((totalFloating / totalErrors) * 100) : '0'}%
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono text-slate-300">
+                    {totalChecked > 0 ? fmtDecimal((totalFloating / totalChecked) * 100) : '0'}%
+                  </td>
+                  <td className="py-3 px-2 text-center font-mono text-slate-200">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-xs">
+                      {floatingMembers.length} / {members.length}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3 text-slate-300">
+                    {topFloatingMember ? (
+                      <span className="font-semibold text-purple-200">
+                        {topFloatingMember.name} ({topFloatingMember.manualQa?.floatingBoxCount} lỗi)
+                      </span>
+                    ) : (
+                      '–'
+                    )}
+                  </td>
+                  <td className="py-3 px-3 text-slate-300 text-xs">
+                    Căn chỉnh cao độ mặt sàn Lidar; soi kỹ chùm tia tiếp đất của bánh xe hoặc chân người, tránh hạ box quá sâu dưới mặt đất.
+                  </td>
+                </tr>
+
+                {/* Row 2: Box không ôm sát pointcloud */}
+                <tr className="hover:bg-[#161a24] transition-colors">
+                  <td className="py-3 px-3 font-bold text-cyan-300">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-cyan-500 shadow-sm shadow-cyan-500/50" />
+                      <span>Lỗi box không ôm sát pointcloud</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-2 text-center">
+                    <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      #06B6D4 (Cyan)
+                    </span>
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono font-bold text-cyan-200">
+                    {fmtInt(totalLoose)}
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono font-bold text-white">
+                    {totalErrors > 0 ? fmtDecimal((totalLoose / totalErrors) * 100) : '0'}%
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono text-slate-300">
+                    {totalChecked > 0 ? fmtDecimal((totalLoose / totalChecked) * 100) : '0'}%
+                  </td>
+                  <td className="py-3 px-2 text-center font-mono text-slate-200">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-xs">
+                      {looseMembers.length} / {members.length}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3 text-slate-300">
+                    {topLooseMember ? (
+                      <span className="font-semibold text-cyan-200">
+                        {topLooseMember.name} ({topLooseMember.manualQa?.looseBoxCount} lỗi)
+                      </span>
+                    ) : (
+                      '–'
+                    )}
+                  </td>
+                  <td className="py-3 px-3 text-slate-300 text-xs">
+                    Thu nhỏ viền 3D box ôm khít chùm điểm ngoài cùng; không để dư khoảng trống ở đuôi/mui xe và hai bên sườn.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* 2. Chi tiết các ghi chú & frame lỗi cụ thể do QC điền */}
+          {defectNotes.length > 0 && (
+            <div className="pt-3 border-t border-[#232836]">
+              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-3">
+                CHI TIẾT FRAME LỖI & LƯU Ý TRỌNG TÂM TỪ CÁC QC ({defectNotes.length} GHI CHÚ)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {defectNotes.map((d, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-[#161a24] border border-[#232836] rounded-xl p-3.5 space-y-1.5 hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white">{d.member}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">Job {d.jobCode || '–'}</span>
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        QC: <strong className="text-slate-300">{d.qcName || '–'}</strong>
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-300 bg-[#12151d] p-2.5 rounded-lg border border-[#1e2330] leading-relaxed">
+                      {d.note}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500 pt-0.5">
+                      {d.floating > 0 && (
+                        <span className="text-purple-400 font-semibold">{d.floating} bay/chìm box</span>
+                      )}
+                      {d.floating > 0 && d.loose > 0 && <span>·</span>}
+                      {d.loose > 0 && (
+                        <span className="text-cyan-400 font-semibold">{d.loose} không ôm sát</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
