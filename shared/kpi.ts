@@ -67,9 +67,9 @@ function buildMember(raw: RawMemberData, week: RawWeekData['week']): ReportMembe
 
   const risk = qa ? `${qa.riskHigh} track rủi ro cao` : '';
   const insight = {
-    excellent: `Xuất sắc sản lượng${risk ? ` · ${risk} chờ QC` : ''}`,
-    normal: `Đạt sản lượng${risk ? ` · ${risk} chờ QC` : ''}`,
-    below: `Dưới KPI${risk ? ` và ${risk}` : ''} · kèm 1-1`,
+    excellent: `Vượt KPI sản lượng${risk ? ` · ${risk} chờ QC` : ''}`,
+    normal: `Đạt KPI sản lượng${risk ? ` · ${risk} chờ QC` : ''}`,
+    below: `Không đạt KPI${risk ? ` và ${risk}` : ''} · kèm 1-1`,
   }[grade];
 
   const absence = raw.coaching ? splitLines(raw.coaching.absenceNote)[0] : undefined;
@@ -85,6 +85,8 @@ function buildMember(raw: RawMemberData, week: RawWeekData['week']): ReportMembe
     name: raw.name,
     initials: initialsOf(raw.name),
     role: raw.role,
+    jobCode: raw.jobCode || '',
+    jobStatus: raw.jobStatus || 'Chưa hoàn thành',
     days,
     total: stats.total,
     workDays: stats.workDays,
@@ -111,8 +113,20 @@ function buildMember(raw: RawMemberData, week: RawWeekData['week']): ReportMembe
 }
 
 export function buildReport(raw: RawWeekData): WeekReport {
-  const { week } = raw;
+  let { week } = raw;
   const members = raw.members.map((m) => buildMember(m, week));
+
+  // Đồng bộ tiến độ hoàn thành Job từ trạng thái các thành viên nếu có
+  const hasJobStatuses = members.some((m) => m.jobStatus || m.jobCode);
+  if (hasJobStatuses) {
+    const doneCount = members.filter((m) => m.jobStatus === 'Hoàn Thành').length;
+    const totalCount = members.filter((m) => m.jobCode).length || members.length;
+    week = {
+      ...week,
+      jobsDone: doneCount,
+      jobsTotal: totalCount,
+    };
+  }
 
   const ranking = [...members].sort(
     (a, b) => b.avg - a.avg || b.total - a.total || a.name.localeCompare(b.name, 'vi'),

@@ -32,7 +32,7 @@ export function Screen3Ranking() {
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Bảng xếp hạng thành viên</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Xếp hạng theo sản lượng trung bình cuboid / ngày làm (mốc {fmtInt(week.normalThreshold)} bình thường · {fmtInt(week.excellentThreshold)} xuất sắc). Cột Track Cao = số track rủi ro cao theo tool QA.
+            Xếp hạng theo sản lượng trung bình cuboid / ngày làm (mốc {fmtInt(week.normalThreshold)} đạt KPI · {fmtInt(week.excellentThreshold)} vượt KPI). Cột Track Cao = số track rủi ro cao theo tool QA.
           </p>
         </div>
 

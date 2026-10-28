@@ -207,13 +207,19 @@ export async function deleteWeek(id: number): Promise<void> {
 
 /* ------------------------------ Thành viên của tuần ---------------------- */
 
-export async function getWeekMembers(db: Db, weekId: number): Promise<{ id: number; name: string; role: string }[]> {
+export async function getWeekMembers(db: Db, weekId: number): Promise<{ id: number; name: string; role: string; jobCode?: string; jobStatus?: string }[]> {
   const [rows] = await db.execute<Row[]>(
-    `SELECT m.id, m.name, m.role FROM week_members wm JOIN members m ON m.id = wm.member_id
+    `SELECT m.id, m.name, m.role, wm.job_code, wm.job_status FROM week_members wm JOIN members m ON m.id = wm.member_id
      WHERE wm.week_id = ? ORDER BY wm.sort_order, m.name`,
     [weekId],
   );
-  return rows.map((row) => ({ id: row.id, name: row.name, role: row.role }));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    jobCode: (row.job_code as string) || '',
+    jobStatus: (row.job_status as string) || 'Chưa hoàn thành',
+  }));
 }
 
 /** Đặt danh sách (và thứ tự) thành viên của tuần. Người bị bỏ ra sẽ mất số liệu của tuần. */
@@ -234,6 +240,31 @@ export async function setWeekMembers(weekId: number, memberIds: number[]): Promi
       );
     }
   });
+}
+
+/** Cập nhật mã job và trạng thái hoàn thành job của 1 thành viên trong tuần */
+export async function updateMemberJob(
+  db: Db,
+  weekId: number,
+  memberId: number,
+  data: { jobCode?: string; jobStatus?: string },
+): Promise<void> {
+  const updates: string[] = [];
+  const params: (string | number)[] = [];
+  if (data.jobCode !== undefined) {
+    updates.push('job_code = ?');
+    params.push(data.jobCode.trim());
+  }
+  if (data.jobStatus !== undefined) {
+    updates.push('job_status = ?');
+    params.push(data.jobStatus.trim());
+  }
+  if (updates.length === 0) return;
+  params.push(weekId, memberId);
+  await db.execute(
+    `UPDATE week_members SET ${updates.join(', ')} WHERE week_id = ? AND member_id = ?`,
+    params,
+  );
 }
 
 /* ------------------------------ Nạp dữ liệu thô cho báo cáo -------------- */
@@ -318,6 +349,8 @@ export async function loadRawWeek(db: Db, weekId: number): Promise<RawWeekData> 
     id: m.id,
     name: m.name,
     role: m.role,
+    jobCode: m.jobCode || '',
+    jobStatus: m.jobStatus || 'Chưa hoàn thành',
     days: daysByMember.get(m.id) ?? [],
     qa: qa.get(m.id) ?? null,
     manualQa: manualQa.get(m.id) ?? null,

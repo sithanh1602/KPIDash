@@ -68,6 +68,23 @@ export const SHEETS: Record<SheetKey, SheetDef> = {
     scope: 'member',
     columns: [
       MEMBER_COLUMN,
+      {
+        key: 'jobCode',
+        header: 'Mã Job',
+        type: 'text',
+        width: 140,
+        aliases: ['ma job', 'job', 'job code'],
+        hint: 'Mã job phân công cho annotator trong tuần.',
+      },
+      {
+        key: 'jobStatus',
+        header: 'Trạng thái Job',
+        type: 'select',
+        width: 150,
+        options: ['Hoàn Thành', 'Chưa hoàn thành'],
+        aliases: ['trang thai', 'trang thai job', 'status'],
+        hint: 'Trạng thái hoàn thành job: 1. Hoàn Thành, 2. Chưa hoàn thành.',
+      },
       ...dayColumns,
       {
         key: 'todayNote',

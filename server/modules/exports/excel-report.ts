@@ -173,13 +173,15 @@ const builders: Record<
 
   kpi(wb, report) {
     const sheet = wb.addWorksheet('02. KPI theo ngày');
-    const cols = report.dayLabels.length + 5;
+    const cols = report.dayLabels.length + 7;
     titleRows(sheet, report, 'BẢNG THEO DÕI SẢN LƯỢNG & KPI THEO NGÀY (T2–T7)', cols);
-    headerRow(sheet, ['Thành viên', ...report.dayLabels, 'Tổng tuần', 'TB / ngày', '% KPI', 'Xếp loại']);
+    headerRow(sheet, ['Thành viên', 'Mã Job', 'Trạng thái Job', ...report.dayLabels, 'Tổng tuần', 'TB / ngày', '% KPI', 'Xếp loại']);
 
     for (const m of report.members) {
       const row = sheet.addRow([
         m.name,
+        m.jobCode || '–',
+        m.jobStatus || 'Chưa hoàn thành',
         ...m.days.map((d) => formatCell(d) || '–'),
         m.total,
         m.avg,
@@ -188,9 +190,19 @@ const builders: Record<
       ]);
       row.height = 22;
       row.getCell(1).font = { name: FONT_FAMILY, size: 10, bold: true };
+      row.getCell(2).font = { name: FONT_FAMILY, size: 10 };
+      row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+      
+      const statusCell = row.getCell(3);
+      statusCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      if (m.jobStatus === 'Hoàn Thành') {
+        fillCell(statusCell, 'FFD1FAE5', 'FF065F46', true);
+      } else {
+        fillCell(statusCell, 'FFF1F5F9', 'FF64748B', false);
+      }
 
       m.days.forEach((d, i) => {
-        const cell = row.getCell(i + 2);
+        const cell = row.getCell(i + 4);
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         if (d?.status === 'work' && d.cuboids !== null) {
           const g: Grade = d.cuboids >= report.week.excellentThreshold ? 'excellent' : d.cuboids >= report.week.normalThreshold ? 'normal' : 'below';
@@ -223,7 +235,7 @@ const builders: Record<
     noteRow.font = { name: FONT_FAMILY, size: 9, italic: true, color: { argb: 'FF64748B' } };
     sheet.mergeCells(noteRow.number, 1, noteRow.number, cols);
 
-    setWidths(sheet, [26, ...report.dayLabels.map(() => 12), 12, 12, 11, 15]);
+    setWidths(sheet, [26, 14, 16, ...report.dayLabels.map(() => 12), 12, 12, 11, 15]);
     borderAll(sheet, 5);
     applyArial(sheet);
   },

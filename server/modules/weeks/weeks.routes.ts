@@ -23,6 +23,7 @@ import {
   listWeeks,
   loadRawWeek,
   setWeekMembers,
+  updateMemberJob,
   updateWeek,
   type WeekPatch,
 } from './weeks.repository';
@@ -159,6 +160,19 @@ weeksRouter.put('/:id/members', requireRole('leader'), async (req, res) => {
   await setWeekMembers(weekId, memberIds);
   await invalidateWeekCache(weekId);
   res.json(await getWeekMembers(pool, weekId));
+});
+
+weeksRouter.patch('/:id/members/:memberId/job', requireRole('leader'), async (req, res) => {
+  const weekId = Number(req.params.id);
+  const memberId = Number(req.params.memberId);
+  const schema = z.object({
+    jobCode: z.string().optional(),
+    jobStatus: z.enum(['Hoàn Thành', 'Chưa hoàn thành']).optional(),
+  });
+  const body = schema.parse(req.body);
+  await updateMemberJob(pool, weekId, memberId, body);
+  await invalidateWeekCache(weekId);
+  res.json({ ok: true });
 });
 
 /* ------------------------------ Bảng nhập liệu (Web Sheets) --------------- */

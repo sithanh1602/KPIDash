@@ -132,9 +132,9 @@ export function getMemberDynamicRiskAndInsight(
   const qa = member.qa;
   if (!qa) {
     const baseInsight = {
-      excellent: 'Xuất sắc sản lượng · Đang cập nhật chất lượng',
-      normal: 'Đạt sản lượng · Đang cập nhật chất lượng',
-      below: 'Dưới KPI · Cần tăng tốc sản lượng',
+      excellent: 'Vượt KPI sản lượng · Đang cập nhật chất lượng',
+      normal: 'Đạt KPI sản lượng · Đang cập nhật chất lượng',
+      below: 'Không đạt KPI · Cần tăng tốc sản lượng',
     }[member.grade];
     return { riskHigh: 0, insight: baseInsight };
   }
@@ -144,9 +144,9 @@ export function getMemberDynamicRiskAndInsight(
   // Nếu đã tắt hết loại cảnh báo mà người này mắc phải
   if (total === 0 && allTotal > 0) {
     const safeInsight = {
-      excellent: 'Xuất sắc sản lượng · Đạt chuẩn chất lượng đã chọn',
-      normal: 'Đạt sản lượng · Đạt chuẩn chất lượng đã chọn',
-      below: 'Dưới KPI · Cần tăng tốc sản lượng',
+      excellent: 'Vượt KPI sản lượng · Đạt chuẩn chất lượng đã chọn',
+      normal: 'Đạt KPI sản lượng · Đạt chuẩn chất lượng đã chọn',
+      below: 'Không đạt KPI · Cần tăng tốc sản lượng',
     }[member.grade];
     return { riskHigh: 0, insight: safeInsight };
   }
@@ -170,11 +170,11 @@ export function getMemberDynamicRiskAndInsight(
   const riskStr = riskHigh > 0 ? `${riskHigh} track rủi ro cao` : '';
   let insight = '';
   if (member.grade === 'excellent') {
-    insight = riskHigh > 0 ? `Xuất sắc sản lượng · ${riskStr} chờ QC` : 'Xuất sắc sản lượng · Chất lượng tốt';
+    insight = riskHigh > 0 ? `Vượt KPI sản lượng · ${riskStr} chờ QC` : 'Vượt KPI sản lượng · Chất lượng tốt';
   } else if (member.grade === 'normal') {
-    insight = riskHigh > 0 ? `Đạt sản lượng · ${riskStr} chờ QC` : 'Đạt sản lượng · Không có track rủi ro cao';
+    insight = riskHigh > 0 ? `Đạt KPI sản lượng · ${riskStr} chờ QC` : 'Đạt KPI sản lượng · Không có track rủi ro cao';
   } else {
-    insight = riskHigh > 0 ? `Dưới KPI${riskStr ? ` và ${riskStr}` : ''} · kèm 1-1` : 'Dưới KPI · Cần tăng tốc sản lượng';
+    insight = riskHigh > 0 ? `Không đạt KPI${riskStr ? ` và ${riskStr}` : ''} · kèm 1-1` : 'Không đạt KPI · Cần tăng tốc sản lượng';
   }
 
   return { riskHigh, insight };

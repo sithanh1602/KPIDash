@@ -31,6 +31,22 @@ export async function runAutoMigrations() {
       await pool.query("ALTER TABLE weeks ADD COLUMN project_tag VARCHAR(100) NOT NULL DEFAULT 'VF-ADAS-2026'");
       console.log('✅ [AutoMigration] Đã bổ sung cột weeks.project_tag');
     }
+
+    const [wmJobCode] = await pool.query<Row[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'week_members' AND COLUMN_NAME = 'job_code'",
+    );
+    if (wmJobCode.length === 0) {
+      await pool.query("ALTER TABLE week_members ADD COLUMN job_code VARCHAR(50) NOT NULL DEFAULT ''");
+      console.log('✅ [AutoMigration] Đã bổ sung cột week_members.job_code');
+    }
+
+    const [wmJobStatus] = await pool.query<Row[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'week_members' AND COLUMN_NAME = 'job_status'",
+    );
+    if (wmJobStatus.length === 0) {
+      await pool.query("ALTER TABLE week_members ADD COLUMN job_status VARCHAR(50) NOT NULL DEFAULT 'Chưa hoàn thành'");
+      console.log('✅ [AutoMigration] Đã bổ sung cột week_members.job_status');
+    }
   } catch (e) {
     // Không làm gián đoạn nếu DB chưa sẵn sàng
   }

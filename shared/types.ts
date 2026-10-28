@@ -151,6 +151,8 @@ export interface RawMemberData {
   id: number;
   name: string;
   role: string;
+  jobCode?: string;
+  jobStatus?: string;
   days: (DayEntry | null)[];
   qa: QaRow | null;
   manualQa: ManualQaRow | null;
@@ -173,6 +175,8 @@ export interface ReportMember {
   name: string;
   initials: string;
   role: string;
+  jobCode?: string;
+  jobStatus?: string;
   days: (DayEntry | null)[];
   total: number;
   workDays: number;

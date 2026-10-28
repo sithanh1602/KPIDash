@@ -194,7 +194,7 @@ export function Screen1Overview() {
               SẢN LƯỢNG TRUNG BÌNH TUẦN
             </h2>
             <p className="text-xs text-slate-400 mb-6">
-              Vàng: 1.000 bình thường · xanh: 1.200 xuất sắc
+              Vàng: 1.000 đạt KPI · xanh: 1.200 vượt KPI
             </p>
 
             {/* Gauge SVG Chart */}
@@ -238,15 +238,15 @@ export function Screen1Overview() {
           <div className="grid grid-cols-3 gap-3 pt-6 border-t border-[#232836]">
             <div className="text-center p-2 rounded-xl bg-[#171b26] border border-[#262c3d]">
               <div className="text-xl font-extrabold text-emerald-400">{summary.cellsExcellent}</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">ngày-người ≥ 1.200</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">ngày-người ≥ 1.200 (Vượt KPI)</div>
             </div>
             <div className="text-center p-2 rounded-xl bg-[#171b26] border border-[#262c3d]">
               <div className="text-xl font-extrabold text-amber-300">{summary.cellsNormal}</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">1.000–1.199</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">1.000–1.199 (Đạt KPI)</div>
             </div>
             <div className="text-center p-2 rounded-xl bg-[#171b26] border border-[#262c3d]">
               <div className="text-xl font-extrabold text-rose-400">{summary.cellsBelow}</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">&lt; 1.000</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">&lt; 1.000 (Không đạt)</div>
             </div>
           </div>
         </section>

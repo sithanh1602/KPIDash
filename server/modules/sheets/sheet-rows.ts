@@ -62,6 +62,8 @@ function readSelect<T extends string>(sheet: SheetKey, values: Values, key: stri
 /* ------------------------------ Từng loại bảng --------------------------- */
 
 export interface ProductionRow {
+  jobCode: string;
+  jobStatus: string;
   days: (Omit<DayEntry, 'note'> | null)[];
   todayNote: string;
 }
@@ -72,7 +74,12 @@ export function parseProductionRow(values: Values): ProductionRow {
     if (!result.ok) throw new RowError(result.message);
     return result.entry;
   });
-  return { days, todayNote: readText('production', values, 'todayNote', 500) };
+  return {
+    jobCode: readText('production', values, 'jobCode', 50),
+    jobStatus: readText('production', values, 'jobStatus', 50) || 'Chưa hoàn thành',
+    days,
+    todayNote: readText('production', values, 'todayNote', 500),
+  };
 }
 
 export function parseQaRow(values: Values): QaRow | null {

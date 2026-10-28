@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { parseCell, formatCell } from './cell';
 import { getMonday } from './format';
 import { attitudeGradeOf, buildReport, gradeOf, summarizeDays } from './kpi';
+import { GRADE_LABEL } from './constants';
 import type { DayEntry, RawWeekData } from './types';
 
 const work = (cuboids: number, estimated = false): DayEntry => ({ status: 'work', cuboids, estimated, note: '' });
@@ -223,4 +224,20 @@ test('tự động tạo ID tăng dần cho tab Issue (ISS-01, ISS-02...)', () =
   });
   const nextId = `ISS-${String(maxNum + 1).padStart(2, '0')}`;
   assert.equal(nextId, 'ISS-06');
+});
+
+test('xếp loại mới: >=1200 Vượt KPI, >=1000 Đạt KPI, <1000 Không đạt KPI và đồng bộ mã/trạng thái job', () => {
+  const normal = 1000;
+  const excellent = 1200;
+
+  assert.equal(gradeOf(1300, normal, excellent), 'excellent');
+  assert.equal(gradeOf(1200, normal, excellent), 'excellent');
+  assert.equal(gradeOf(1199, normal, excellent), 'normal');
+  assert.equal(gradeOf(1000, normal, excellent), 'normal');
+  assert.equal(gradeOf(999, normal, excellent), 'below');
+  assert.equal(gradeOf(500, normal, excellent), 'below');
+
+  assert.equal(GRADE_LABEL.excellent, 'Vượt KPI');
+  assert.equal(GRADE_LABEL.normal, 'Đạt KPI');
+  assert.equal(GRADE_LABEL.below, 'Không đạt KPI');
 });

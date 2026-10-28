@@ -5,14 +5,17 @@ export const DAY_COUNT = 6;
 export const DAY_NAMES = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'] as const;
 
 export const DEFAULT_TARGET = 1000;
-export const DEFAULT_NORMAL = 800;
-export const DEFAULT_EXCELLENT = 1000;
+export const DEFAULT_NORMAL = 1000;
+export const DEFAULT_EXCELLENT = 1200;
 
 export const GRADE_LABEL = {
-  excellent: 'Xuất sắc',
-  normal: 'Bình thường',
-  below: 'Dưới KPI',
+  excellent: 'Vượt KPI',
+  normal: 'Đạt KPI',
+  below: 'Không đạt KPI',
 } as const;
+
+export const JOB_STATUSES = ['Hoàn Thành', 'Chưa hoàn thành'] as const;
+export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const ATTITUDE_LABEL = {
   excellent: 'Xuất sắc',

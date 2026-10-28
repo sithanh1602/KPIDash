@@ -34,6 +34,8 @@ function loadMemberRows(raw: RawWeekData, key: SheetKey): SheetRow[] {
     const values: Record<string, string> = { member: member.name };
     switch (key) {
       case 'production':
+        values.jobCode = member.jobCode || '';
+        values.jobStatus = member.jobStatus || 'Chưa hoàn thành';
         member.days.forEach((day, i) => {
           values[`d${i}`] = formatCell(day);
         });
@@ -153,6 +155,10 @@ async function saveMemberRows(connection: PoolConnection, weekId: number, key: S
           [weekId, memberId, day, entry.status, entry.cuboids, Number(entry.estimated), note],
         );
       }
+      await connection.execute(
+        'UPDATE week_members SET job_code = ?, job_status = ? WHERE week_id = ? AND member_id = ?',
+        [parsed.jobCode, parsed.jobStatus, weekId, memberId],
+      );
     } else if (key === 'qa') {
       const qa = withContext(line, label, () => parseQaRow(row.values));
       await connection.execute('DELETE FROM qa_results WHERE week_id = ? AND member_id = ?', [weekId, memberId]);

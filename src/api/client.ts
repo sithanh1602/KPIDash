@@ -179,6 +179,17 @@ export async function apiSetWeekMembers(weekId: number, memberIds: number[]): Pr
   });
 }
 
+export async function apiUpdateMemberJob(
+  weekId: number,
+  memberId: number,
+  data: { jobCode?: string; jobStatus?: string },
+): Promise<void> {
+  return apiFetch<void>(`/api/weeks/${weekId}/members/${memberId}/job`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 /* ------------------------------ Sheet API --------------------------------- */
 
 export async function apiLoadSheet(weekId: number, sheetKey: SheetKey): Promise<SheetData> {

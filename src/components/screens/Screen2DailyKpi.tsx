@@ -1,17 +1,42 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useWeek } from '../../context/WeekContext';
 import { fmtDecimal, fmtInt } from '@shared/format';
 import { QA_TYPES } from '@shared/constants';
 import { getMemberDynamicQa, getMemberDynamicRiskAndInsight } from '@shared/qa';
 import { StatusBadge } from '../common/Badge';
 import { QaTypeFilterBar } from '../common/QaTypeFilterBar';
+import { apiUpdateMemberJob } from '../../api/client';
+import { showToast } from '../../utils/toast';
 
 export function Screen2DailyKpi() {
-  const { report, selectedQaTypes } = useWeek();
+  const { user } = useAuth();
+  const { report, selectedQaTypes, refreshReport } = useWeek();
   if (!report) return null;
 
+  const isLeader = user?.role === 'leader';
   const { week, members, dayLabels, actions, tracks } = report;
   const isFiltered = selectedQaTypes.length < QA_TYPES.length;
+
+  const handleJobCodeUpdate = async (memberId: number, newJobCode: string) => {
+    try {
+      await apiUpdateMemberJob(week.id, memberId, { jobCode: newJobCode });
+      showToast.success('Đã lưu mã job', `Mã job "${newJobCode}" đã được cập nhật.`);
+      refreshReport();
+    } catch (e) {
+      showToast.error('Không thể lưu mã job', (e as Error).message);
+    }
+  };
+
+  const handleJobStatusUpdate = async (memberId: number, newStatus: string) => {
+    try {
+      await apiUpdateMemberJob(week.id, memberId, { jobStatus: newStatus });
+      showToast.success('Cập nhật trạng thái job', `Đã chuyển sang "${newStatus}".`);
+      refreshReport();
+    } catch (e) {
+      showToast.error('Không thể đổi trạng thái job', (e as Error).message);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -22,12 +47,25 @@ export function Screen2DailyKpi() {
             <span className="text-xs font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">02</span>
             <h2 className="text-lg font-bold text-white tracking-tight">Bảng KPI theo ngày</h2>
           </div>
-          <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/50" /> Xuất sắc ≥ 1.200</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-500/20 border border-amber-500/50" /> Bình thường 1.000–1.199</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-rose-500/20 border border-rose-500/50" /> Dưới KPI &lt; 1.000</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-indigo-500/20 border border-indigo-500/50" /> Done job</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-slate-700/30 border border-slate-600/50" /> Nghỉ</span>
+          <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/50" />
+              Vượt KPI ≥ {fmtInt(week.excellentThreshold)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-amber-500/20 border border-amber-500/50" />
+              Đạt KPI {fmtInt(week.normalThreshold)}–{fmtInt(week.excellentThreshold - 1)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-rose-500/20 border border-rose-500/50" />
+              Không đạt KPI &lt; {fmtInt(week.normalThreshold)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-indigo-500/20 border border-indigo-500/50" /> Done job
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-slate-700/30 border border-slate-600/50" /> Nghỉ
+            </span>
           </div>
         </div>
         <p className="text-xs text-slate-400 mb-5">
@@ -40,6 +78,8 @@ export function Screen2DailyKpi() {
             <thead>
               <tr className="border-b border-[#232836] text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
                 <th className="py-3 px-3">Annotator</th>
+                <th className="py-3 px-2">Mã Job</th>
+                <th className="py-3 px-2 text-center">Trạng thái Job</th>
                 {dayLabels.map((lbl, i) => (
                   <th key={i} className="py-3 px-2 text-center whitespace-nowrap">{lbl}</th>
                 ))}
@@ -52,6 +92,68 @@ export function Screen2DailyKpi() {
               {members.map((m) => (
                 <tr key={m.id} className="hover:bg-[#161a24] transition-colors">
                   <td className="py-3 px-3 font-bold text-white whitespace-nowrap">{m.name}</td>
+
+                  {/* Cột Mã Job */}
+                  <td className="py-2.5 px-2 whitespace-nowrap">
+                    {isLeader ? (
+                      <input
+                        type="text"
+                        defaultValue={m.jobCode || ''}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          if (val !== (m.jobCode || '')) {
+                            handleJobCodeUpdate(m.id, val);
+                          }
+                        }}
+                        placeholder="Nhập mã job..."
+                        className="w-28 bg-[#171b26] border border-[#282f42] rounded px-2 py-1 text-xs text-white outline-none focus:border-emerald-500 font-mono transition-colors"
+                        title="Leader có thể nhập mã job trực tiếp tại đây"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-slate-300 font-medium">
+                        {m.jobCode || '–'}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Cột Trạng thái Job: 1. Hoàn Thành, 2. Chưa hoàn thành */}
+                  <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                    {isLeader ? (
+                      <select
+                        value={m.jobStatus || 'Chưa hoàn thành'}
+                        onChange={(e) => handleJobStatusUpdate(m.id, e.target.value)}
+                        className={`text-xs px-2 py-1 rounded border font-semibold outline-none cursor-pointer transition-all ${
+                          m.jobStatus === 'Hoàn Thành'
+                            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 focus:border-emerald-400'
+                            : 'bg-slate-800 border-slate-700 text-slate-400 focus:border-slate-500'
+                        }`}
+                        title="Leader chọn: 1. Hoàn Thành hoặc 2. Chưa hoàn thành"
+                      >
+                        <option value="Chưa hoàn thành" className="bg-[#171b26] text-slate-300">
+                          Chưa hoàn thành
+                        </option>
+                        <option value="Hoàn Thành" className="bg-[#171b26] text-emerald-400 font-bold">
+                          Hoàn Thành
+                        </option>
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                          m.jobStatus === 'Hoàn Thành'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            : 'bg-slate-800 text-slate-400 border-slate-700/60'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            m.jobStatus === 'Hoàn Thành' ? 'bg-emerald-400' : 'bg-slate-500'
+                          }`}
+                        />
+                        {m.jobStatus === 'Hoàn Thành' ? 'Hoàn Thành' : 'Chưa hoàn thành'}
+                      </span>
+                    )}
+                  </td>
+
                   {m.days.map((day, i) => {
                     if (!day) {
                       return (
@@ -127,7 +229,7 @@ export function Screen2DailyKpi() {
               TRUNG BÌNH CUBOID / NGÀY LÀM
             </h3>
             <p className="text-xs text-slate-400 mb-6">
-              Vạch đứt vàng {fmtInt(week.normalThreshold)} - xanh {fmtInt(week.excellentThreshold)}
+              Vạch đứt vàng {fmtInt(week.normalThreshold)} (đạt KPI) - xanh {fmtInt(week.excellentThreshold)} (vượt KPI)
             </p>
 
             <div className="space-y-4 relative">
