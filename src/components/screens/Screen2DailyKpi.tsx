@@ -363,10 +363,10 @@ export function Screen2DailyKpi() {
         </section>
       </div>
 
-      {/* Kế hoạch hành động tuần tới */}
+      {/* Kế hoạch hành động tiếp theo */}
       <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md">
         <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-4">
-          KẾ HOẠCH HÀNH ĐỘNG TUẦN TỚI
+          KẾ HOẠCH HÀNH ĐỘNG TIẾP THEO
         </h3>
 
         <div className="space-y-3">

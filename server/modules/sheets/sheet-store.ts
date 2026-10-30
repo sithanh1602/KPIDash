@@ -137,7 +137,8 @@ async function saveMemberRows(connection: PoolConnection, weekId: number, key: S
     const label = members.get(memberId)!;
 
     if (key === 'production') {
-      const parsed = withContext(line, label, () => parseProductionRow(row.values));
+      const dayCount = Math.max(1, diffDays(week.startDate, week.endDate) + 1);
+      const parsed = withContext(line, label, () => parseProductionRow(row.values, dayCount));
       const [existing] = await connection.execute<import('../../config/db').Row[]>(
         'SELECT day_index, note FROM daily_entries WHERE week_id = ? AND member_id = ?',
         [weekId, memberId],

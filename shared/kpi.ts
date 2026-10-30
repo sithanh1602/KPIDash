@@ -59,7 +59,8 @@ const shortName = (name: string) => name.trim().split(/\s+/).at(-1) ?? name;
 const joinNames = (names: string[]) => names.join(', ');
 
 function buildMember(raw: RawMemberData, week: RawWeekData['week']): ReportMember {
-  const days = Array.from({ length: DAY_COUNT }, (_, i) => raw.days[i] ?? null);
+  const dayCount = Math.max(1, diffDays(week.startDate, week.endDate) + 1);
+  const days = Array.from({ length: dayCount }, (_, i) => raw.days[i] ?? null);
   const stats = summarizeDays(days, week.excellentThreshold);
   const grade = gradeOf(stats.avg, week.normalThreshold, week.excellentThreshold);
   const qa = raw.qa;
@@ -78,7 +79,7 @@ function buildMember(raw: RawMemberData, week: RawWeekData['week']): ReportMembe
     .join(' · ');
 
   const asOfIndex = diffDays(week.startDate, week.dataAsOf);
-  const todayEntry = asOfIndex >= 0 && asOfIndex < DAY_COUNT ? days[asOfIndex] : null;
+  const todayEntry = asOfIndex >= 0 && asOfIndex < dayCount ? days[asOfIndex] : null;
 
   return {
     id: raw.id,
@@ -139,7 +140,7 @@ export function buildReport(raw: RawWeekData): WeekReport {
 
   return {
     week,
-    dayLabels: dayLabels(week.startDate),
+    dayLabels: dayLabels(week.startDate, week.endDate),
     ranking,
     members,
     tracks: raw.tracks,
@@ -245,7 +246,7 @@ function buildExecutive(raw: RawWeekData, ranking: ReportMember[], input: Execut
 
   if (week.jobsTotal > 0) {
     lines.push(
-      `Tiến độ: ${week.jobsDone}/${week.jobsTotal} job Complete trước deadline; số liệu đến ${weekdayLabel(week.dataAsOf)} ${fmtDayMonth(week.dataAsOf)}.`,
+      `Tiến độ: ${week.jobsDone}/${week.jobsTotal} job Complete trước deadline; số liệu đến ngày ${fmtDayMonth(week.dataAsOf)}.`,
     );
   }
 
@@ -323,5 +324,5 @@ function buildHighlights(raw: RawWeekData, ranking: ReportMember[], byGrade: (g:
 
 /** Ngày hiển thị cho "Hôm nay" */
 export function asOfLabel(week: RawWeekData['week']): string {
-  return `${weekdayLabel(week.dataAsOf)} ${fmtDayMonth(week.dataAsOf)}`;
+  return `ngày ${fmtDayMonth(week.dataAsOf)}`;
 }

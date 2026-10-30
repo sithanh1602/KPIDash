@@ -11,7 +11,7 @@ import type {
   SharedTrack,
   WeekMeta,
 } from '../../../shared/types';
-import { addDays } from '../../../shared/format';
+import { addDays, diffDays } from '../../../shared/format';
 import { pool, withTransaction, type PoolConnection, type ResultSetHeader, type Row } from '../../config/db';
 import { HttpError, notFound } from '../../middleware/errors';
 
@@ -288,11 +288,12 @@ export async function loadRawWeek(db: Db, weekId: number): Promise<RawWeekData> 
   const [issueRows] = await db.execute<Row[]>('SELECT * FROM issues WHERE week_id = ? ORDER BY sort_order, id', [weekId]);
   const [actionRows] = await db.execute<Row[]>('SELECT * FROM action_items WHERE week_id = ? ORDER BY sort_order, id', [weekId]);
 
+  const dayCount = Math.max(1, diffDays(week.startDate, week.endDate) + 1);
   const daysByMember = new Map<number, (DayEntry | null)[]>();
-  for (const member of members) daysByMember.set(member.id, Array<DayEntry | null>(DAY_COUNT).fill(null));
+  for (const member of members) daysByMember.set(member.id, Array<DayEntry | null>(dayCount).fill(null));
   for (const row of dayRows) {
     const days = daysByMember.get(row.member_id);
-    if (days && row.day_index < DAY_COUNT) {
+    if (days && row.day_index < dayCount) {
       const isHalf = row.note?.includes('[0.5c]');
       days[row.day_index] = {
         status: row.status,

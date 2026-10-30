@@ -35,7 +35,7 @@ export function Screen1Overview() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div className="text-xs uppercase tracking-widest text-slate-400 font-mono flex items-center gap-2">
-            <span>BÁO CÁO TUẦN {week.weekNumber}</span>
+            <span>BÁO CÁO JOB {week.weekNumber}</span>
             <span className="text-slate-600">·</span>
             <span className="font-bold text-slate-200">01 / 06</span>
           </div>
@@ -51,7 +51,7 @@ export function Screen1Overview() {
           Báo cáo KPI & chất lượng gán nhãn {week.discipline}
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-2">
-          Tuần {week.weekNumber} ({weekRangeLabel(week.startDate, week.endDate)}) • số liệu đến {asOfLabel(week)} • Team lead {leadDisplay}
+          JOB {week.weekNumber} (Từ {weekRangeLabel(week.startDate, week.endDate)}) • Số liệu đến {asOfLabel(week)} • Team lead {leadDisplay}
         </p>
 
         {/* 6 Top Metric Cards */}
@@ -191,7 +191,7 @@ export function Screen1Overview() {
         <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md flex flex-col justify-between">
           <div>
             <h2 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-1">
-              SẢN LƯỢNG TRUNG BÌNH TUẦN
+              SẢN LƯỢNG TRUNG BÌNH THEO NGÀY
             </h2>
             <p className="text-xs text-slate-400 mb-6">
               Vàng: 1.000 đạt KPI · xanh: 1.200 vượt KPI
@@ -252,10 +252,10 @@ export function Screen1Overview() {
         </section>
       </div>
 
-      {/* ★ Điểm nổi bật tuần */}
+      {/* ★ Điểm nổi bật */}
       <section className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md">
         <h2 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-4 flex items-center gap-1.5">
-          <span>★</span> ĐIỂM NỔI BẬT TUẦN
+          <span>★</span> ĐIỂM NỔI BẬT JOB
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

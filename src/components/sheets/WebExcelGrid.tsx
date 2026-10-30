@@ -15,7 +15,7 @@ import {
 import { apiDownloadTemplate, apiLoadSheet, apiSaveSheet, getTemplateUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useWeek } from '../../context/WeekContext';
-import { SHEET_ORDER, SHEETS, type SheetKey } from '@shared/sheets';
+import { SHEET_ORDER, SHEETS, type SheetKey, type ColumnDef } from '@shared/sheets';
 import type { SheetRow } from '@shared/types';
 import { ImportModal } from './ImportModal';
 import { showToast } from '../../utils/toast';
@@ -73,6 +73,22 @@ export function WebExcelGrid() {
   };
 
   const currentDef = SHEETS[selectedSheetKey];
+
+  const activeColumns: ColumnDef[] = React.useMemo(() => {
+    if (selectedSheetKey === 'production' && report?.dayLabels) {
+      const nonDayBefore = currentDef.columns.filter((c) => c.type !== 'cell' && c.key !== 'todayNote');
+      const dayCols: ColumnDef[] = report.dayLabels.map((lbl, idx) => ({
+        key: `d${idx}`,
+        header: lbl,
+        type: 'cell' as const,
+        width: 95,
+        hint: `Số cuboid hoàn thành ngày ${lbl}.`,
+      }));
+      const nonDayAfter = currentDef.columns.filter((c) => c.key === 'todayNote');
+      return [...nonDayBefore, ...dayCols, ...nonDayAfter];
+    }
+    return currentDef.columns;
+  }, [selectedSheetKey, currentDef, report?.dayLabels]);
 
   const loadData = async (sheetKey: SheetKey) => {
     if (!currentWeekId) return;
@@ -315,20 +331,15 @@ export function WebExcelGrid() {
               <thead className="sticky top-0 bg-[#161a24] z-20 border-b border-[#232836]">
                 <tr className="text-slate-400 text-[11px] uppercase font-semibold">
                   <th className="py-2.5 px-3 w-10 text-center">#</th>
-                  {currentDef.columns.map((col) => {
-                    let headerLabel = col.header;
-                    if (selectedSheetKey === 'production' && col.type === 'cell' && report?.dayLabels) {
-                      const dayIdx = Number(col.key.slice(1));
-                      if (report.dayLabels[dayIdx]) headerLabel = report.dayLabels[dayIdx];
-                    }
-
+                  {activeColumns.map((col) => {
                     return (
                       <th
                         key={col.key}
                         style={{ minWidth: col.width || 120 }}
                         className="py-2.5 px-3 whitespace-nowrap"
+                        title={col.hint}
                       >
-                        {headerLabel}
+                        {col.header}
                       </th>
                     );
                   })}
@@ -351,7 +362,7 @@ export function WebExcelGrid() {
                         {rowIndex + 1}
                       </td>
 
-                      {currentDef.columns.map((col) => {
+                      {activeColumns.map((col) => {
                         const val = row.values[col.key] ?? '';
                         const isReadOnly = col.readOnly;
 

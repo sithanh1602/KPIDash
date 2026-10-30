@@ -28,7 +28,7 @@ export function Screen3Ranking() {
       <div className="bg-[#12151d] border border-[#232836] rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-widest text-slate-400 font-mono mb-1">
-            {week.orgName} · {week.teamName} {week.discipline} · Tuần {week.weekNumber}
+            {week.orgName} · {week.teamName} {week.discipline} · JOB {week.weekNumber}
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Bảng xếp hạng thành viên</h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -66,7 +66,7 @@ export function Screen3Ranking() {
               {fmtInt(top2.avg)} <span className="text-xs font-normal text-slate-400">CUBOID / NGÀY</span>
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              Tổng tuần <strong className="text-slate-300">{fmtInt(top2.total)}</strong> cuboid · {top2.workDays} ngày làm
+              Tổng Job <strong className="text-slate-300">{fmtInt(top2.total)}</strong> cuboid · {top2.workDays} ngày làm
             </div>
             <div className="flex items-center justify-center gap-2 mt-3">
               <StatusBadge grade={top2.grade} />
@@ -94,7 +94,7 @@ export function Screen3Ranking() {
               {fmtInt(top1.avg)} <span className="text-xs font-normal text-slate-400">CUBOID / NGÀY</span>
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              Tổng tuần <strong className="text-white">{fmtInt(top1.total)}</strong> cuboid · {top1.workDays} ngày làm
+              Tổng Job <strong className="text-white">{fmtInt(top1.total)}</strong> cuboid · {top1.workDays} ngày làm
             </div>
             <div className="flex items-center justify-center gap-2 mt-3">
               <StatusBadge grade={top1.grade} />
@@ -121,7 +121,7 @@ export function Screen3Ranking() {
               {fmtInt(top3.avg)} <span className="text-xs font-normal text-slate-400">CUBOID / NGÀY</span>
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              Tổng tuần <strong className="text-slate-300">{fmtInt(top3.total)}</strong> cuboid · {top3.workDays} ngày làm
+              Tổng Job <strong className="text-slate-300">{fmtInt(top3.total)}</strong> cuboid · {top3.workDays} ngày làm
             </div>
             <div className="flex items-center justify-center gap-2 mt-3">
               <StatusBadge grade={top3.grade} />

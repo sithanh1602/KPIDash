@@ -46,14 +46,12 @@ export function getMonday(iso: string): string {
   }
 }
 
-/** ["T2 19/10", "T3 20/10", ...] căn theo lịch thực tế */
-export function dayLabels(startDate: string): string[] {
-  return Array.from({ length: DAY_COUNT }, (_, i) => {
+/** Danh sách nhãn ngày theo lịch thực tế của Job (ví dụ: ["21/10", "22/10", "23/10", ...]) */
+export function dayLabels(startDate: string, endDate?: string): string[] {
+  const count = endDate ? Math.max(1, diffDays(startDate, endDate) + 1) : DAY_COUNT;
+  return Array.from({ length: count }, (_, i) => {
     const dateStr = addDays(startDate, i);
-    const d = new Date(`${dateStr}T00:00:00Z`);
-    const day = d.getUTCDay();
-    const dayName = day === 0 ? 'CN' : `T${day + 1}`;
-    return `${dayName} ${fmtDayMonth(dateStr)}`;
+    return fmtDayMonth(dateStr);
   });
 }
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseCell, formatCell } from './cell';
-import { getMonday } from './format';
+import { getMonday, dayLabels } from './format';
 import { attitudeGradeOf, buildReport, gradeOf, summarizeDays } from './kpi';
 import { GRADE_LABEL } from './constants';
 import type { DayEntry, RawWeekData } from './types';
@@ -112,7 +112,17 @@ test('báo cáo tuần: TB, % KPI, xếp hạng và tổng đội', () => {
   assert.equal(report.summary.teamAvg, Math.round(10620 / 9));
   assert.equal(report.summary.attitudeAvg, 94);
   assert.equal(report.ranking[0].today.status, 'done');
-  assert.equal(report.dayLabels[0], 'T2 19/10');
+  assert.equal(report.dayLabels[0], '19/10');
+});
+
+test('JOB linh hoạt theo ngày thực tế: bắt đầu giữa tuần và số ngày tùy biến', () => {
+  // Job từ Thứ 4 (21/10) đến Thứ 7 (24/10) -> 4 ngày
+  const labels = dayLabels('2026-10-21', '2026-10-24');
+  assert.deepEqual(labels, ['21/10', '22/10', '23/10', '24/10']);
+
+  // Job 7 ngày xuyên tuần: 2026-10-28 đến 2026-11-03
+  const labels7 = dayLabels('2026-10-28', '2026-11-03');
+  assert.deepEqual(labels7, ['28/10', '29/10', '30/10', '31/10', '01/11', '02/11', '03/11']);
 });
 
 test('thành viên chưa có ngày công không gây chia cho 0', () => {

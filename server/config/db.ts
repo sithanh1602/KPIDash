@@ -47,6 +47,13 @@ export async function runAutoMigrations() {
       await pool.query("ALTER TABLE week_members ADD COLUMN job_status VARCHAR(50) NOT NULL DEFAULT 'Chưa hoàn thành'");
       console.log('✅ [AutoMigration] Đã bổ sung cột week_members.job_status');
     }
+
+    try {
+      await pool.query('ALTER TABLE daily_entries DROP CHECK daily_entries_chk_1');
+      console.log('✅ [AutoMigration] Đã gỡ bỏ ràng buộc cố định 6 ngày trên daily_entries');
+    } catch {
+      // Constraint đã được gỡ hoặc không tồn tại
+    }
   } catch (e) {
     // Không làm gián đoạn nếu DB chưa sẵn sàng
   }

@@ -35,7 +35,7 @@ function applyArial(sheet: ExcelJS.Worksheet) {
 
 function titleRows(sheet: ExcelJS.Worksheet, report: WeekReport, title: string, width: number) {
   const { week } = report;
-  const orgLine = `${week.orgName} · ${week.teamName} ${week.discipline} · Tuần ${week.weekNumber} (${weekRangeLabel(week.startDate, week.endDate)})`;
+  const orgLine = `${week.orgName} · ${week.teamName} ${week.discipline} · JOB ${week.weekNumber} (${weekRangeLabel(week.startDate, week.endDate)})`;
   const subLine = `Số liệu chốt đến ${fmtDate(week.dataAsOf)}${week.leadName ? ` · Team Lead: ${week.leadName}` : ''}`;
 
   const r1 = sheet.addRow([orgLine]);
@@ -143,7 +143,7 @@ const builders: Record<
     });
 
     sheet.addRow([]);
-    const execHeader = headerRow(sheet, ['TÓM TẮT ĐIỀU HÀNH & KẾT LUẬN TUẦN']);
+    const execHeader = headerRow(sheet, ['TÓM TẮT ĐIỀU HÀNH & KẾT LUẬN']);
     execHeader.getCell(1).alignment = { horizontal: 'left' };
     sheet.mergeCells(execHeader.number, 1, execHeader.number, 4);
 
@@ -175,7 +175,7 @@ const builders: Record<
     const sheet = wb.addWorksheet('02. KPI theo ngày');
     const cols = report.dayLabels.length + 7;
     titleRows(sheet, report, 'BẢNG THEO DÕI SẢN LƯỢNG & KPI THEO NGÀY (T2–T7)', cols);
-    headerRow(sheet, ['Thành viên', 'Mã Job', 'Trạng thái Job', ...report.dayLabels, 'Tổng tuần', 'TB / ngày', '% KPI', 'Xếp loại']);
+    headerRow(sheet, ['Thành viên', 'Mã Job', 'Trạng thái Job', ...report.dayLabels, 'Tổng Job', 'TB / ngày', '% KPI', 'Xếp loại']);
 
     for (const m of report.members) {
       const row = sheet.addRow([
@@ -539,7 +539,7 @@ const builders: Record<
   coaching(wb, report, selectedQaTypes?: string[]) {
     const sheet = wb.addWorksheet('06. Coaching & Issue');
     titleRows(sheet, report, 'KẾ HOẠCH KÈM CẶP 1-1 VÀ THEO DÕI ISSUE DỰ ÁN', 6);
-    headerRow(sheet, ['Thành viên', 'Xếp loại & TB', 'Phong cách gán nhãn', 'Lỗi hay gặp', 'Training đề xuất', 'Mục tiêu tuần tới']);
+    headerRow(sheet, ['Thành viên', 'Xếp loại & TB', 'Phong cách gán nhãn', 'Lỗi hay gặp', 'Training đề xuất', 'Mục tiêu tiếp theo']);
 
     const activeQaList = selectedQaTypes && selectedQaTypes.length > 0 ? selectedQaTypes : QA_TYPES.map((t) => t.key);
 
@@ -576,7 +576,7 @@ const builders: Record<
     });
 
     sheet.addRow([]);
-    const actionTitle = headerRow(sheet, ['KẾ HOẠCH HÀNH ĐỘNG TUẦN TIẾP THEO']);
+    const actionTitle = headerRow(sheet, ['KẾ HOẠCH HÀNH ĐỘNG TIẾP THEO']);
     sheet.mergeCells(actionTitle.number, 1, actionTitle.number, 4);
     actionTitle.getCell(1).alignment = { horizontal: 'left' };
 
@@ -758,9 +758,9 @@ export async function buildProjectReportXlsx(
   borderAll(summarySheet, 4);
   applyArial(summarySheet);
 
-  // 2. Sheet Sản lượng từng tuần
-  const weeklySheet = workbook.addWorksheet('02. Sản lượng từng tuần');
-  const weekHeaders = ['Annotator', ...reports.map((r) => `Tuần ${r.week.weekNumber} (${fmtDayMonth(r.week.startDate)})`), 'Tổng dự án', 'TB / ngày'];
+  // 2. Sheet Sản lượng từng JOB
+  const weeklySheet = workbook.addWorksheet('02. Sản lượng từng JOB');
+  const weekHeaders = ['Annotator', ...reports.map((r) => `JOB ${r.week.weekNumber} (${fmtDayMonth(r.week.startDate)})`), 'Tổng dự án', 'TB / ngày'];
   headerRow(weeklySheet, weekHeaders);
 
   for (const m of aggregatedMembers) {
@@ -778,11 +778,11 @@ export async function buildProjectReportXlsx(
 
   // 3. Sheet Issues Dự án
   const issuesSheet = workbook.addWorksheet('03. Issues Dự án');
-  headerRow(issuesSheet, ['Tuần', 'Mã Issue', 'Người báo', 'Vấn đề', 'Phương án tạm', 'Bước tiếp theo', 'Trạng thái', 'Ưu tiên']);
+  headerRow(issuesSheet, ['JOB', 'Mã Issue', 'Người báo', 'Vấn đề', 'Phương án tạm', 'Bước tiếp theo', 'Trạng thái', 'Ưu tiên']);
   for (const r of reports) {
     for (const iss of r.issues) {
       const row = issuesSheet.addRow([
-        `Tuần ${r.week.weekNumber}`,
+        `JOB ${r.week.weekNumber}`,
         iss.code,
         iss.reporter,
         iss.title,

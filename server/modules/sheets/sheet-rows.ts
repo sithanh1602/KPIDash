@@ -68,8 +68,14 @@ export interface ProductionRow {
   todayNote: string;
 }
 
-export function parseProductionRow(values: Values): ProductionRow {
-  const days = Array.from({ length: 6 }, (_, i) => {
+export function parseProductionRow(values: Values, dayCount = 6): ProductionRow {
+  let count = dayCount;
+  for (let i = 0; i < 60; i++) {
+    if (values[`d${i}`] !== undefined) {
+      count = Math.max(count, i + 1);
+    }
+  }
+  const days = Array.from({ length: count }, (_, i) => {
     const result = parseCell(values[`d${i}`] ?? '');
     if (!result.ok) throw new RowError(result.message);
     return result.entry;
