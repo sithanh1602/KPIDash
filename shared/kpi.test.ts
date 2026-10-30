@@ -251,3 +251,51 @@ test('xếp loại mới: >=1200 Vượt KPI, >=1000 Đạt KPI, <1000 Không đ
   assert.equal(GRADE_LABEL.normal, 'Đạt KPI');
   assert.equal(GRADE_LABEL.below, 'Không đạt KPI');
 });
+
+test('ưu tiên chất lượng (Track Cao ít hơn, % lỗi thấp hơn) khi các thành viên bằng sản lượng', () => {
+  const raw: RawWeekData = {
+    week: baseWeek,
+    members: [
+      {
+        id: 1,
+        name: 'Đỗ Nguyễn Việt Linh',
+        role: 'Annotator',
+        days: [work(1008), work(1008), work(1008)],
+        qa: { jobCode: 'J1', qcName: 'QC', cuboids: 3024, warningPercent: 7.0, s: 0, k: 0, z: 0, h: 0, o: 0, d: 0, riskHigh: 3, riskMid: 0, riskLow: 0 },
+        manualQa: null, attitude: null, coaching: null,
+      },
+      {
+        id: 2,
+        name: 'Lê Sĩ Thành',
+        role: 'Annotator',
+        days: [work(1008), work(1008), work(1008)],
+        qa: { jobCode: 'J1', qcName: 'QC', cuboids: 3024, warningPercent: 1.0, s: 0, k: 0, z: 0, h: 0, o: 0, d: 0, riskHigh: 0, riskMid: 0, riskLow: 0 },
+        manualQa: null, attitude: null, coaching: null,
+      },
+      {
+        id: 3,
+        name: 'Vương Tuấn Dương',
+        role: 'Annotator',
+        days: [work(1008), work(1008), work(1008)],
+        qa: { jobCode: 'J1', qcName: 'QC', cuboids: 3024, warningPercent: 6.5, s: 0, k: 0, z: 0, h: 0, o: 0, d: 0, riskHigh: 1, riskMid: 0, riskLow: 0 },
+        manualQa: null, attitude: null, coaching: null,
+      },
+    ],
+    tracks: [],
+    issues: [],
+    actions: [],
+  };
+
+  const report = buildReport(raw);
+  // Lê Sĩ Thành có 0 track cao -> Hạng 1
+  assert.equal(report.ranking[0].name, 'Lê Sĩ Thành');
+  assert.equal(report.ranking[0].rank, 1);
+
+  // Vương Tuấn Dương có 1 track cao -> Hạng 2
+  assert.equal(report.ranking[1].name, 'Vương Tuấn Dương');
+  assert.equal(report.ranking[1].rank, 2);
+
+  // Đỗ Nguyễn Việt Linh có 3 track cao -> Hạng 3
+  assert.equal(report.ranking[2].name, 'Đỗ Nguyễn Việt Linh');
+  assert.equal(report.ranking[2].rank, 3);
+});

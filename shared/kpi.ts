@@ -129,9 +129,31 @@ export function buildReport(raw: RawWeekData): WeekReport {
     };
   }
 
-  const ranking = [...members].sort(
-    (a, b) => b.avg - a.avg || b.total - a.total || a.name.localeCompare(b.name, 'vi'),
-  );
+  const ranking = [...members].sort((a, b) => {
+    // 1. Sản lượng TB / ngày cao hơn đứng trước
+    if (b.avg !== a.avg) return b.avg - a.avg;
+    // 2. Tổng sản lượng cuboid cao hơn đứng trước
+    if (b.total !== a.total) return b.total - a.total;
+
+    // 3. Ưu tiên chất lượng: Ít Track rủi ro cao hơn đứng trước
+    const hasQaA = !!a.qa;
+    const hasQaB = !!b.qa;
+    if (hasQaA && hasQaB) {
+      if (a.qa!.riskHigh !== b.qa!.riskHigh) {
+        return a.qa!.riskHigh - b.qa!.riskHigh;
+      }
+      if (a.qa!.warningPercent !== b.qa!.warningPercent) {
+        return a.qa!.warningPercent - b.qa!.warningPercent;
+      }
+    } else if (hasQaA && !hasQaB) {
+      if (a.qa!.riskHigh === 0) return -1;
+    } else if (!hasQaA && hasQaB) {
+      if (b.qa!.riskHigh === 0) return 1;
+    }
+
+    // 4. Bảng chữ cái tiếng Việt
+    return a.name.localeCompare(b.name, 'vi');
+  });
   ranking.forEach((m, index) => {
     m.rank = index + 1;
   });

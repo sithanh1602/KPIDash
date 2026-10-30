@@ -13,14 +13,46 @@ export function Screen3Ranking() {
 
   const { week, ranking, summary, tracks } = report;
   const isFiltered = selectedQaTypes.length < QA_TYPES.length;
-  const top1 = ranking[0];
-  const top2 = ranking[1];
-  const top3 = ranking[2];
-  const belowKpi = ranking.filter((m) => m.grade === 'below');
 
   const getDynamicRisk = (m: (typeof ranking)[0]) => {
     return getMemberDynamicRiskAndInsight(m, selectedQaTypes, tracks).riskHigh;
   };
+
+  const dynamicRanking = React.useMemo(() => {
+    return [...ranking].sort((a, b) => {
+      // 1. Sản lượng TB / ngày cao hơn đứng trước
+      if (b.avg !== a.avg) return b.avg - a.avg;
+      // 2. Tổng sản lượng cuboids cao hơn đứng trước
+      if (b.total !== a.total) return b.total - a.total;
+
+      // 3. Ưu tiên chất lượng: Ít Track rủi ro cao hơn theo bộ lọc active
+      const hasQaA = !!a.qa;
+      const hasQaB = !!b.qa;
+      if (hasQaA && hasQaB) {
+        const riskA = getMemberDynamicRiskAndInsight(a, selectedQaTypes, tracks).riskHigh;
+        const riskB = getMemberDynamicRiskAndInsight(b, selectedQaTypes, tracks).riskHigh;
+        if (riskA !== riskB) return riskA - riskB;
+
+        const pctA = getMemberDynamicQa(a.qa, selectedQaTypes).percent;
+        const pctB = getMemberDynamicQa(b.qa, selectedQaTypes).percent;
+        if (pctA !== pctB) return pctA - pctB;
+      } else if (hasQaA && !hasQaB) {
+        const riskA = getMemberDynamicRiskAndInsight(a, selectedQaTypes, tracks).riskHigh;
+        if (riskA === 0) return -1;
+      } else if (!hasQaA && hasQaB) {
+        const riskB = getMemberDynamicRiskAndInsight(b, selectedQaTypes, tracks).riskHigh;
+        if (riskB === 0) return 1;
+      }
+
+      // 4. Bảng chữ cái
+      return a.name.localeCompare(b.name, 'vi');
+    });
+  }, [ranking, selectedQaTypes, tracks]);
+
+  const top1 = dynamicRanking[0];
+  const top2 = dynamicRanking[1];
+  const top3 = dynamicRanking[2];
+  const belowKpi = dynamicRanking.filter((m) => m.grade === 'below');
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -32,7 +64,7 @@ export function Screen3Ranking() {
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Bảng xếp hạng thành viên</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Xếp hạng theo sản lượng trung bình cuboid / ngày làm (mốc {fmtInt(week.normalThreshold)} đạt KPI · {fmtInt(week.excellentThreshold)} vượt KPI). Cột Track Cao = số track rủi ro cao theo tool QA.
+            Xếp hạng theo sản lượng trung bình cuboid / ngày làm (mốc {fmtInt(week.normalThreshold)} đạt KPI · {fmtInt(week.excellentThreshold)} vượt KPI). Khi bằng sản lượng, ưu tiên thành viên có ít Track rủi ro cao và tỷ lệ lỗi thấp hơn.
           </p>
         </div>
 
@@ -156,7 +188,7 @@ export function Screen3Ranking() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1e2330]">
-              {ranking.map((m, idx) => {
+              {dynamicRanking.map((m, idx) => {
                 const rankNum = String(idx + 1).padStart(2, '0');
                 const barWidth = Math.min(100, Math.max(5, (m.avg / 1600) * 100));
                 const barColor =
@@ -241,7 +273,7 @@ export function Screen3Ranking() {
                         <div>
                           <div className="font-bold text-white text-sm">{m.name}</div>
                           <div className="text-[11px] text-slate-400">
-                            Hạng {String(m.rank).padStart(2, '0')} · TB {fmtInt(m.avg)}/ngày · {m.kpiPercent}% KPI · {m.qa?.riskHigh || 0} track Cao
+                            Hạng {String(dynamicRanking.findIndex((x) => x.id === m.id) + 1).padStart(2, '0')} · TB {fmtInt(m.avg)}/ngày · {m.kpiPercent}% KPI · {getDynamicRisk(m)} track Cao
                           </div>
                         </div>
                       </div>
