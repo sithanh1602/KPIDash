@@ -230,3 +230,18 @@ CREATE TABLE IF NOT EXISTS daily_reports (
   updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_daily_date (report_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Chi tiết sản lượng từng thành viên theo ngày báo cáo
+CREATE TABLE IF NOT EXISTS daily_report_members (
+  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  report_date  DATE NOT NULL,
+  member_key   VARCHAR(50) NOT NULL,
+  name         VARCHAR(150) NOT NULL,
+  ids          INT UNSIGNED NOT NULL DEFAULT 0,
+  cuboids      INT UNSIGNED NOT NULL DEFAULT 0,
+  active       TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order   INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_drm_date (report_date),
+  FOREIGN KEY (report_date) REFERENCES daily_reports(report_date) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

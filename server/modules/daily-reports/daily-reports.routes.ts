@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool, type Row, type ResultSetHeader } from '../../config/db';
+import { pool, withTransaction, type Row, type ResultSetHeader } from '../../config/db';
 import { authenticate, requireRole } from '../../middleware/auth';
 import { HttpError } from '../../middleware/errors';
 
@@ -49,7 +49,7 @@ dailyReportsRouter.get('/dates', async (_req, res) => {
   res.json({ dates });
 });
 
-/** Lấy dữ liệu báo cáo của một ngày cụ thể (nếu chưa có thì sinh template tự động từ thành viên) */
+/** Lấy dữ liệu báo cáo của một ngày cụ thể */
 dailyReportsRouter.get('/', async (req, res) => {
   const dateQuery = typeof req.query.date === 'string' ? req.query.date : '';
   const date = /^\d{4}-\d{2}-\d{2}$/.test(dateQuery)
@@ -64,12 +64,30 @@ dailyReportsRouter.get('/', async (req, res) => {
 
   if (rows.length > 0) {
     const row = rows[0];
+
+    // Ưu tiên đọc từ bảng quan hệ daily_report_members
+    const [drmRows] = await pool.query<Row[]>(
+      'SELECT member_key, name, ids, cuboids, active FROM daily_report_members WHERE report_date = ? ORDER BY sort_order ASC, id ASC',
+      [date],
+    );
+
     let members = [];
-    try {
-      members = typeof row.members_json === 'string' ? JSON.parse(row.members_json) : row.members_json;
-    } catch {
-      members = [];
+    if (drmRows.length > 0) {
+      members = drmRows.map((r) => ({
+        key: r.member_key,
+        name: r.name,
+        ids: Number(r.ids) || 0,
+        cuboids: Number(r.cuboids) || 0,
+        active: Boolean(r.active),
+      }));
+    } else {
+      try {
+        members = typeof row.members_json === 'string' ? JSON.parse(row.members_json) : row.members_json;
+      } catch {
+        members = [];
+      }
     }
+
     return res.json({
       date: row.report_date,
       team: row.team || 'Team 12',
@@ -90,22 +108,37 @@ dailyReportsRouter.get('/', async (req, res) => {
 
   if (prevRows.length > 0) {
     const prev = prevRows[0];
-    let prevMembers = [];
-    try {
-      prevMembers = typeof prev.members_json === 'string' ? JSON.parse(prev.members_json) : prev.members_json;
-    } catch {
-      prevMembers = [];
-    }
+    const [prevDrm] = await pool.query<Row[]>(
+      'SELECT member_key, name FROM daily_report_members WHERE report_date = ? ORDER BY sort_order ASC, id ASC',
+      [prev.report_date],
+    );
 
-    const resetMembers = Array.isArray(prevMembers)
-      ? prevMembers.map((m: any, i: number) => ({
-          key: m.key || `m${i + 1}`,
-          name: m.name || 'Thành viên mới',
-          ids: 0,
-          cuboids: 0,
-          active: true,
-        }))
-      : [];
+    let resetMembers = [];
+    if (prevDrm.length > 0) {
+      resetMembers = prevDrm.map((m, i) => ({
+        key: m.member_key || `m${i + 1}`,
+        name: m.name,
+        ids: 0,
+        cuboids: 0,
+        active: true,
+      }));
+    } else {
+      let prevMembers = [];
+      try {
+        prevMembers = typeof prev.members_json === 'string' ? JSON.parse(prev.members_json) : prev.members_json;
+      } catch {
+        prevMembers = [];
+      }
+      resetMembers = Array.isArray(prevMembers)
+        ? prevMembers.map((m: any, i: number) => ({
+            key: m.key || `m${i + 1}`,
+            name: m.name || 'Thành viên mới',
+            ids: 0,
+            cuboids: 0,
+            active: true,
+          }))
+        : [];
+    }
 
     return res.json({
       date,
@@ -151,24 +184,47 @@ dailyReportsRouter.get('/', async (req, res) => {
   });
 });
 
-/** Lưu hoặc cập nhật báo cáo ngày */
+/** Lưu hoặc cập nhật báo cáo ngày (đồng bộ vào 2 bảng daily_reports và daily_report_members) */
 dailyReportsRouter.post('/', async (req, res) => {
   const body = saveReportSchema.parse(req.body);
   const membersJson = JSON.stringify(body.members);
 
-  await pool.query(
-    `INSERT INTO daily_reports (report_date, team, project, goal, session, note, members_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       team = VALUES(team),
-       project = VALUES(project),
-       goal = VALUES(goal),
-       session = VALUES(session),
-       note = VALUES(note),
-       members_json = VALUES(members_json),
-       updated_at = CURRENT_TIMESTAMP`,
-    [body.date, body.team, body.project, body.goal, body.session, body.note, membersJson],
-  );
+  await withTransaction(async (conn) => {
+    // 1. Lưu thông tin chung vào bảng daily_reports
+    await conn.query(
+      `INSERT INTO daily_reports (report_date, team, project, goal, session, note, members_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         team = VALUES(team),
+         project = VALUES(project),
+         goal = VALUES(goal),
+         session = VALUES(session),
+         note = VALUES(note),
+         members_json = VALUES(members_json),
+         updated_at = CURRENT_TIMESTAMP`,
+      [body.date, body.team, body.project, body.goal, body.session, body.note, membersJson],
+    );
+
+    // 2. Lưu từng dòng thành viên vào bảng chi tiết daily_report_members
+    await conn.execute('DELETE FROM daily_report_members WHERE report_date = ?', [body.date]);
+
+    if (body.members.length > 0) {
+      const values = body.members.map((m, idx) => [
+        body.date,
+        m.key,
+        m.name,
+        m.ids,
+        m.cuboids,
+        m.active ? 1 : 0,
+        idx,
+      ]);
+      await conn.query(
+        `INSERT INTO daily_report_members (report_date, member_key, name, ids, cuboids, active, sort_order)
+         VALUES ?`,
+        [values],
+      );
+    }
+  });
 
   res.json({ ok: true, date: body.date, message: 'Đã lưu báo cáo ngày thành công vào cơ sở dữ liệu' });
 });
@@ -238,19 +294,41 @@ dailyReportsRouter.post('/backup/restore', async (req, res) => {
     const note = String(r.note || '').slice(0, 5000);
     const members = Array.isArray(r.members) ? r.members : [];
 
-    await pool.query(
-      `INSERT INTO daily_reports (report_date, team, project, goal, session, note, members_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         team = VALUES(team),
-         project = VALUES(project),
-         goal = VALUES(goal),
-         session = VALUES(session),
-         note = VALUES(note),
-         members_json = VALUES(members_json),
-         updated_at = CURRENT_TIMESTAMP`,
-      [date, team, project, goal, session, note, JSON.stringify(members)],
-    );
+    await withTransaction(async (conn) => {
+      await conn.query(
+        `INSERT INTO daily_reports (report_date, team, project, goal, session, note, members_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           team = VALUES(team),
+           project = VALUES(project),
+           goal = VALUES(goal),
+           session = VALUES(session),
+           note = VALUES(note),
+           members_json = VALUES(members_json),
+           updated_at = CURRENT_TIMESTAMP`,
+        [date, team, project, goal, session, note, JSON.stringify(members)],
+      );
+
+      await conn.execute('DELETE FROM daily_report_members WHERE report_date = ?', [date]);
+
+      if (members.length > 0) {
+        const values = members.map((m: any, idx: number) => [
+          date,
+          m.key || `m${idx + 1}`,
+          m.name,
+          Number(m.ids) || 0,
+          Number(m.cuboids) || 0,
+          m.active ? 1 : 0,
+          idx,
+        ]);
+        await conn.query(
+          `INSERT INTO daily_report_members (report_date, member_key, name, ids, cuboids, active, sort_order)
+           VALUES ?`,
+          [values],
+        );
+      }
+    });
+
     count++;
   }
 
