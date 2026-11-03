@@ -1,4 +1,4 @@
-import type { AuthUser, ImportResult, Role, SheetData, SheetRow, WeekListItem, WeekMeta, WeekReport } from '@shared/types';
+import type { AuthUser, DailyReportData, ImportResult, Role, SheetData, SheetRow, WeekListItem, WeekMeta, WeekReport } from '@shared/types';
 import type { SheetKey } from '@shared/sheets';
 
 let accessToken: string | null = null;
@@ -446,5 +446,39 @@ export async function apiDownloadQaFile(weekId: number, fileId: number, fileName
 export async function apiDeleteQaFile(weekId: number, fileId: number): Promise<void> {
   return apiFetch<void>(`/api/weeks/${weekId}/qa/files/${fileId}`, {
     method: 'DELETE',
+  });
+}
+
+/* -------------------------- Báo cáo KPI hằng ngày ------------------------- */
+
+export async function apiGetDailyReport(date?: string): Promise<DailyReportData> {
+  const q = date ? `?date=${encodeURIComponent(date)}` : '';
+  return apiFetch<DailyReportData>(`/api/daily-reports${q}`);
+}
+
+export async function apiSaveDailyReport(data: DailyReportData): Promise<{ ok: boolean; date: string }> {
+  return apiFetch<{ ok: boolean; date: string }>('/api/daily-reports', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiGetDailyReportDates(): Promise<string[]> {
+  const res = await apiFetch<{ dates: string[] }>('/api/daily-reports/dates');
+  return res.dates || [];
+}
+
+export async function apiDeleteDailyReport(date: string): Promise<void> {
+  return apiFetch<void>(`/api/daily-reports/${date}`, { method: 'DELETE' });
+}
+
+export async function apiBackupAllDailyReports(): Promise<{ version: number; exportedAt: string; reports: Record<string, DailyReportData> }> {
+  return apiFetch('/api/daily-reports/backup/all');
+}
+
+export async function apiRestoreDailyReports(reports: Record<string, any>): Promise<{ ok: boolean; restoredCount: number }> {
+  return apiFetch('/api/daily-reports/backup/restore', {
+    method: 'POST',
+    body: JSON.stringify({ reports }),
   });
 }

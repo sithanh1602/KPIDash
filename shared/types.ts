@@ -269,3 +269,24 @@ export interface ImportResult {
   errors: { line: number; message: string }[];
   warnings: string[];
 }
+
+/* -------------------------- Báo cáo KPI hằng ngày ------------------------- */
+
+export interface DailyReportMember {
+  key: string;
+  name: string;
+  ids: number;
+  cuboids: number;
+  active: boolean;
+}
+
+export interface DailyReportData {
+  date: string;
+  team: string;
+  project: string;
+  goal: number;
+  session: string;
+  note: string;
+  isExisting?: boolean;
+  members: DailyReportMember[];
+}

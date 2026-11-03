@@ -15,6 +15,7 @@ import { Screen5Coaching } from './components/screens/Screen5Coaching';
 import { Screen6Attitude } from './components/screens/Screen6Attitude';
 import { WebExcelGrid } from './components/sheets/WebExcelGrid';
 import { MembersManager } from './components/members/MembersManager';
+import { ScreenDailyReport } from './components/screens/ScreenDailyReport';
 import { ExportModal } from './components/exports/ExportModal';
 import type { ReportSectionKey } from '@shared/report-sections';
 import { AlertCircle, LogIn } from 'lucide-react';
@@ -147,7 +148,7 @@ function DashboardApp() {
             <div className="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
             <div>Đang tính toán số liệu tuần...</div>
           </div>
-        ) : !report && activeTab !== 'members' ? (
+        ) : !report && activeTab !== 'members' && activeTab !== 'daily_report' ? (
           <div className="py-24 text-center text-slate-400 text-sm">
             Chưa có báo cáo cho tuần này. Vui lòng chọn tuần hoặc tạo tuần mới.
           </div>
@@ -160,6 +161,13 @@ function DashboardApp() {
             {activeTab === 'manual_qa' && <ScreenManualQa />}
             {activeTab === 'coaching_issue' && <Screen5Coaching />}
             {activeTab === 'attitude' && <Screen6Attitude />}
+            {activeTab === 'daily_report' && (user?.role === 'leader' ? (
+              <ScreenDailyReport />
+            ) : (
+              <div className="py-24 text-center text-rose-400 text-sm">
+                Bạn không có quyền truy cập tab này. Chỉ Leader mới được phép xem Báo cáo ngày.
+              </div>
+            ))}
             {activeTab === 'web_sheets' && <WebExcelGrid />}
             {activeTab === 'members' && <MembersManager />}
           </>

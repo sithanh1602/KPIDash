@@ -12,6 +12,7 @@ export type AppTab =
   | 'manual_qa' // 05 QA Manual
   | 'coaching_issue' // 06
   | 'attitude' // 07
+  | 'daily_report' // 08 Báo cáo ngày (chỉ Leader)
   | 'web_sheets' // Nhập liệu trực tiếp bảng Excel trên web
   | 'members'; // Quản lý danh mục thành viên
 

@@ -54,6 +54,26 @@ export async function runAutoMigrations() {
     } catch {
       // Constraint đã được gỡ hoặc không tồn tại
     }
+
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS daily_reports (
+          report_date  DATE PRIMARY KEY,
+          team         VARCHAR(100) NOT NULL DEFAULT 'Team 12',
+          project      VARCHAR(100) NOT NULL DEFAULT '3D LiDAR · Cuboid',
+          goal         INT UNSIGNED NOT NULL DEFAULT 800,
+          session      VARCHAR(50) NOT NULL DEFAULT 'Buổi chiều',
+          note         TEXT,
+          members_json JSON NOT NULL,
+          created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_daily_date (report_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+      console.log('✅ [AutoMigration] Đã sẵn sàng bảng daily_reports');
+    } catch (tblErr) {
+      console.error('Lỗi khởi tạo bảng daily_reports:', tblErr);
+    }
   } catch (e) {
     // Không làm gián đoạn nếu DB chưa sẵn sàng
   }

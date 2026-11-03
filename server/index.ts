@@ -8,6 +8,7 @@ import { authRouter } from './modules/auth/auth.routes';
 import { membersRouter } from './modules/members/members.routes';
 import { weeksRouter } from './modules/weeks/weeks.routes';
 import { usersRouter } from './modules/users/users.routes';
+import { dailyReportsRouter } from './modules/daily-reports/daily-reports.routes';
 import { pool, runAutoMigrations } from './config/db';
 
 assertServerConfig();
@@ -39,6 +40,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/members', membersRouter);
 app.use('/api/weeks', weeksRouter);
+app.use('/api/daily-reports', dailyReportsRouter);
 
 // Serve frontend if in production
 if (env.production) {
